@@ -1,0 +1,19 @@
+node_modules/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Repos cloned during local scans
+.scan-tmp/
+
+*.log
+.DS_Store
+Thumbs.db

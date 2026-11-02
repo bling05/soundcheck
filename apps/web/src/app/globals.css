@@ -1,0 +1,52 @@
+:root {
+  --color-background: #16191d;
+  --color-text: #e8eaed;
+  --color-text-muted: #9aa1a9;
+  --color-accent: #3ddc84;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-body), system-ui, sans-serif;
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading), system-ui, sans-serif;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+code {
+  font-family: var(--font-mono), monospace;
+}
+
+.home {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 6rem 1rem;
+}
+
+.home h1 {
+  margin: 0 0 1rem;
+  font-size: 4rem;
+  color: var(--color-accent);
+}
+
+.home p {
+  margin: 0 0 1.5rem;
+  font-size: 1.125rem;
+}
+
+.home code {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
