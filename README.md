@@ -4,7 +4,7 @@ Open-source security scanner for apps that are built with Lovable, Bolt, Cursor,
 
 Scan a live URL, a GitHub repo, or both. Every finding comes with evidence, a plain-English lesson, a manual fix, and a ready-to-paste AI prompt. Soundcheck is not a pentest, and every report lists what it did not check.
 
-**Status:** early setup. Nothing can be scanned yet. See the [project spec](docs/SPEC.md) for the plan.
+**Status:** early setup. Nothing can be scanned yet.
 
 ## Getting started
 
