@@ -6,7 +6,12 @@ import type {
 } from '../request-guard';
 import { CLUES, type Clue, type Technology } from './clues';
 
-const MAX_FILES = 10;
+// A browser downloads all of these on every visit, so reading them adds about one visitor's
+// traffic. Real apps split their code across many files: at 10, a real Supabase app was missed.
+const MAX_FILES = 50;
+// Stop reading early so a slow or enormous site can't tie up the worker.
+const MAX_TOTAL_MS = 30_000;
+const MAX_TOTAL_BYTES = 50 * 1024 * 1024;
 
 type ResponseHeaders = Extract<GuardedFetchResult, { ok: true }>['headers'];
 
@@ -115,7 +120,7 @@ function pick<T>(
 
 /**
  * Works out what a site was built with from what it publicly sends. Downloads only the
- * home page and up to 10 of its own code files, and keeps none of their contents.
+ * home page and up to 50 of its own code files, and keeps none of their contents.
  */
 export async function fingerprintSite(
   url: string,
@@ -142,8 +147,14 @@ export async function fingerprintSite(
 
   let filesRead = 0;
   let filesNotRead = Math.max(ownFiles.length - MAX_FILES, 0);
+  let bytesRead = home.body.length;
+  const deadline = Date.now() + MAX_TOTAL_MS;
   // One at a time, to keep the load on the site gentle.
   for (const file of ownFiles.slice(0, MAX_FILES)) {
+    if (Date.now() > deadline || bytesRead > MAX_TOTAL_BYTES) {
+      filesNotRead++;
+      continue;
+    }
     const response = await visit(file);
     const readable =
       response.ok &&
@@ -152,6 +163,7 @@ export async function fingerprintSite(
       !isCompressed(response.headers);
     if (response.ok && readable) {
       filesRead++;
+      bytesRead += response.body.length;
       sources.push({
         searchIn: 'content',
         text: response.body.toString(),

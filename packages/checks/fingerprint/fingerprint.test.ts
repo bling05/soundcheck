@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   blogAboutToolsSite,
   firebaseSite,
@@ -22,6 +22,7 @@ let site: RunningFixture | undefined;
 afterEach(async () => {
   await site?.stop();
   site = undefined;
+  vi.restoreAllMocks();
 });
 
 async function scan(fixture: FixtureSite) {
@@ -48,7 +49,34 @@ function fakeVisit(
 const names = (result: { detections: { technology: string }[] }) =>
   result.detections.map(({ technology }) => technology);
 
+function siteWithCodeFiles(count: number, lastFileBody = ''): FixtureSite {
+  const tags = Array.from(
+    { length: count },
+    (_, index) => `<script src="/${index}.js"></script>`,
+  );
+  const pages: FixtureSite = { '/': { body: tags.join('') } };
+  for (let index = 0; index < count; index++) {
+    pages[`/${index}.js`] = { body: index === count - 1 ? lastFileBody : '' };
+  }
+  return pages;
+}
+
 describe('fingerprintSite detects', () => {
+  it('Supabase when the address is in a late code file', async () => {
+    const result = await scan(
+      siteWithCodeFiles(
+        18,
+        'createClient("https://fixturefixturefixtur.supabase.co")',
+      ),
+    );
+
+    expect(result).toMatchObject({
+      platforms: ['supabase'],
+      complete: true,
+      filesRead: 18,
+    });
+  });
+
   it('Supabase from an address inside a code file', async () => {
     const result = await scan(supabaseSite);
 
@@ -74,6 +102,27 @@ describe('fingerprintSite detects', () => {
 
   it('Vite from its build file name', async () => {
     expect(names(await scan(viteSite))).toEqual(['vite']);
+  });
+
+  it('Vite when hosting has rewritten the script tag', async () => {
+    const result = await fingerprintSite(
+      'https://site.test/',
+      fakeVisit({
+        body: '<script type="module" async="" src="/assets/index-Br7pOPeM.js"></script>',
+      }),
+    );
+
+    expect(result).toMatchObject({ ok: true });
+    if (result.ok) expect(names(result)).toEqual(['vite']);
+  });
+
+  it('no Vite from an ordinary script in an assets folder', async () => {
+    const result = await fingerprintSite(
+      'https://site.test/',
+      fakeVisit({ body: '<script src="/assets/menu.js"></script>' }),
+    );
+
+    expect(result).toMatchObject({ ok: true, detections: [] });
   });
 
   it('Lovable from its template, and sets it as the tool', async () => {
@@ -189,22 +238,59 @@ describe('fingerprintSite is honest about what it could not read', () => {
     });
   });
 
-  it('reads at most 10 code files and counts the rest as not read', async () => {
-    const tags = Array.from(
-      { length: 12 },
-      (_, index) => `<script src="/${index}.js"></script>`,
-    );
-    const pages: FixtureSite = { '/': { body: tags.join('') } };
-    for (let index = 0; index < 12; index++) {
-      pages[`/${index}.js`] = { body: '' };
-    }
-
-    const result = await scan(pages);
+  it('reads at most 50 code files and counts the rest as not read', async () => {
+    const result = await scan(siteWithCodeFiles(52));
 
     expect(result).toMatchObject({
       complete: false,
-      filesRead: 10,
+      filesRead: 50,
       filesNotRead: 2,
+    });
+  });
+
+  it('stops reading code files when it runs out of time', async () => {
+    let now = 0;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    site = await startFixture(siteWithCodeFiles(3));
+    const fetchForSite = testFetchFor(site);
+    const visit: GuardedFetch = async (url, options) => {
+      const response = await fetchForSite(url, options);
+      if (url.endsWith('/0.js')) now = 31_000;
+      return response;
+    };
+
+    const result = await fingerprintSite(site.url, visit);
+
+    expect(result).toMatchObject({
+      ok: true,
+      complete: false,
+      filesRead: 1,
+      filesNotRead: 2,
+    });
+  });
+
+  it('stops reading code files after too much data', async () => {
+    const big = Buffer.alloc(30 * 1024 * 1024);
+    const visit: GuardedFetch = async (url) => ({
+      ok: true,
+      status: 200,
+      headers: {},
+      body: url.endsWith('.js')
+        ? big
+        : Buffer.from(
+            '<script src="/a.js"></script><script src="/b.js"></script><script src="/c.js"></script>',
+          ),
+      url,
+      truncated: false,
+    });
+
+    const result = await fingerprintSite('https://site.test/', visit);
+
+    expect(result).toMatchObject({
+      ok: true,
+      complete: false,
+      filesRead: 2,
+      filesNotRead: 1,
     });
   });
 

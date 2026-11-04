@@ -63,7 +63,7 @@ export const CLUES: readonly Clue[] = [
     description: 'Page loads a Vite-style build file',
     searchIn: 'content',
     pattern:
-      /<script type="module" crossorigin src="[^"]*\/assets\/[^"/]+-[\w-]{8,}\.js"/,
+      /<script\b[^>]*\btype="module"[^>]*\bsrc="[^"]*\/assets\/[^"/]+-[\w-]{8,}\.js"/,
   },
   {
     technology: 'vercel',
