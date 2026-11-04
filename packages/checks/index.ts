@@ -2,6 +2,7 @@ import type { Check } from './types';
 
 export { guardedFetch, isPublicAddress } from './request-guard';
 export type {
+  GuardedFetch,
   GuardedFetchOptions,
   GuardedFetchResult,
   GuardFailureReason,

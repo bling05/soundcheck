@@ -1,9 +1,12 @@
 import type { Finding } from '@soundcheck/report';
 import type { AiTool, Platform } from '@soundcheck/shared';
+import type { GuardedFetch } from './request-guard';
 
 export type CheckMode = 'url-passive' | 'url-active' | 'repo';
 
 export interface CheckContext {
+  /** The only way a check should visit a link. Scans pass `guardedFetch`, tests pass `testFetchFor`. */
+  fetch: GuardedFetch;
   /** Set for URL scans. */
   url?: string;
   /** Local path to the cloned repo. Set for repo scans. */

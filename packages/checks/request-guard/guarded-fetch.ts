@@ -46,6 +46,12 @@ export type GuardedFetchResult =
       message: string;
     };
 
+/** A function that visits a link with the guard's protection. Checks receive one in their context. */
+export type GuardedFetch = (
+  target: string,
+  options?: GuardedFetchOptions,
+) => Promise<GuardedFetchResult>;
+
 /** What the guard allows. Only `guardedFetch` is public, so callers can't loosen it. */
 export interface GuardPolicy {
   isAddressAllowed(address: string): boolean;
