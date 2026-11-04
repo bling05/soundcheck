@@ -1,3 +1,4 @@
+import { securityHeaders } from './security-headers';
 import type { Check } from './types';
 
 export { fingerprintSite } from './fingerprint';
@@ -11,4 +12,4 @@ export type {
 } from './request-guard';
 export type { Check, CheckContext, CheckMode, CheckResult } from './types';
 
-export const checks: readonly Check[] = [];
+export const checks: readonly Check[] = [securityHeaders];
