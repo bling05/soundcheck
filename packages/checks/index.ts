@@ -1,3 +1,4 @@
+import { bundleSecrets } from './bundle-secrets';
 import { securityHeaders } from './security-headers';
 import type { Check } from './types';
 
@@ -12,4 +13,4 @@ export type {
 } from './request-guard';
 export type { Check, CheckContext, CheckMode, CheckResult } from './types';
 
-export const checks: readonly Check[] = [securityHeaders];
+export const checks: readonly Check[] = [securityHeaders, bundleSecrets];

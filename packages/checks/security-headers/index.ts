@@ -1,15 +1,11 @@
 import type { Finding } from '@soundcheck/report';
 import { buildFixPrompt } from '../fix-prompt';
+import { withoutQuery } from '../site-files';
 import type { Check, CheckContext, CheckResult } from '../types';
 import { RULE_CONTENT } from './content';
 import { findProblems } from './rules';
 
 const CHECK_ID = 'security-headers';
-
-function withoutQuery(url: string): string {
-  const { origin, pathname } = new URL(url);
-  return `${origin}${pathname}`;
-}
 
 async function run(context: CheckContext): Promise<CheckResult> {
   if (!context.url) {

@@ -14,7 +14,7 @@ import {
 } from '../../../fixtures/server';
 import type { GuardedFetch } from '../request-guard';
 import { testFetchFor } from '../request-guard/test-fetch';
-import { findCodeFiles } from './fingerprint';
+import { findCodeFiles } from '../site-files';
 import { fingerprintSite } from './index';
 
 let site: RunningFixture | undefined;

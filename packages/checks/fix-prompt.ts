@@ -21,6 +21,6 @@ export function buildFixPrompt(
     intro,
     `A scan found this: ${problem}.`,
     request,
-    "Don't change anything else. If my hosting doesn't let you set this, tell me instead of working around it.",
+    "Don't change anything else. If something stops you from doing this, like my hosting not allowing it, tell me instead of working around it.",
   ].join('\n\n');
 }

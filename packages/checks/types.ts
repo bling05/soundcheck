@@ -19,7 +19,12 @@ export interface CheckContext {
 
 /** A skipped check is never a pass: `reason` is shown in the report's "Not checked" section. */
 export type CheckResult =
-  | { status: 'ran'; findings: Finding[] }
+  | {
+      status: 'ran';
+      findings: Finding[];
+      /** Set when the check only saw part of the site, so the report can say so. */
+      note?: string;
+    }
   | { status: 'skipped'; reason: string };
 
 export interface Check {
