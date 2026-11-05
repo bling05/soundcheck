@@ -1,15 +1,18 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { Barlow_Condensed, Inter, JetBrains_Mono } from 'next/font/google';
+import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google';
 import './globals.css';
 
-const heading = Barlow_Condensed({
+const sans = IBM_Plex_Sans({
   subsets: ['latin'],
-  weight: ['500', '600'],
-  variable: '--font-heading',
+  weight: ['400', '600'],
+  variable: '--font-sans',
 });
-const body = Inter({ subsets: ['latin'], variable: '--font-body' });
-const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
+const mono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400'],
+  variable: '--font-mono',
+});
 
 export const metadata: Metadata = {
   title: 'Soundcheck',
@@ -19,10 +22,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${heading.variable} ${body.variable} ${mono.variable}`}
-    >
+    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body>{children}</body>
     </html>
   );

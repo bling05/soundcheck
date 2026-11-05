@@ -32,6 +32,8 @@ export interface Finding {
   evidence: Evidence[];
   lesson: Lesson;
   manualFix: ManualFix;
+  /** Something urgent to do before the fix, like replacing a leaked key. */
+  safetyStep?: string;
   /** Ready-to-paste prompt tailored to the detected AI tool. */
   aiFixPrompt: string;
 }

@@ -7,6 +7,9 @@ import { findLeaks } from './rules';
 const CHECK_ID = 'bundle-secrets';
 const MAX_EVIDENCE_FILES = 5;
 
+const REPLACE_KEY_FIRST =
+  "Create a new key and delete this one. Removing it from your code isn't enough, because anyone who already copied it can keep using it until it's deleted.";
+
 const PARTIAL_READ =
   "We couldn't read all of your site's code, so there could be more keys we didn't see.";
 
@@ -42,6 +45,7 @@ async function run(context: CheckContext): Promise<CheckResult> {
       title,
       severity,
       source: 'live' as const,
+      safetyStep: REPLACE_KEY_FIRST,
       evidence: locations.slice(0, MAX_EVIDENCE_FILES).map((url) => ({
         kind: 'url' as const,
         url,

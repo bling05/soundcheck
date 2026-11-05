@@ -306,6 +306,7 @@ describe('finding contents', () => {
       expect(finding.manualFix.description).toContain('Create a new key');
       expect(finding.manualFix.description).toContain('Delete the old key');
       expect(finding.aiFixPrompt).toContain('delete the old one');
+      expect(finding.safetyStep).toContain('Create a new key');
     }
   });
 
