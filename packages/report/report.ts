@@ -1,4 +1,6 @@
-import { SEVERITIES, sortBySeverity, type Severity } from './severity';
+import type { AiTool, Technology } from '@soundcheck/shared';
+import { buildFixPrompt } from './fix-prompt';
+import { sortBySeverity } from './severity';
 import type { Finding } from './types';
 
 /** What one check did. Matches a check's result, plus its id and title. */
@@ -11,6 +13,10 @@ export interface ScanReport {
   url: string;
   /** ISO date and time. */
   scannedAt: string;
+  /** AI tool to tailor the fix prompt for, if one was detected. */
+  tool?: AiTool;
+  /** What fingerprinting found. Missing means no clue was found, not that it isn't used. */
+  stack?: Technology[];
   outcomes: CheckOutcome[];
   /** Kinds of checks this scan never tried, like ones that need domain verification. */
   notAttempted: { title: string; reason: string }[];
@@ -23,11 +29,10 @@ export interface NotCheckedItem {
 
 export interface ReportSummary {
   headline: string;
-  /** The first finding to deal with. Undefined when there are none. */
-  fixFirst?: Finding;
   /** Every finding, most severe first. */
   findings: Finding[];
-  severityCounts: { severity: Severity; count: number }[];
+  /** One prompt that fixes every finding, worst first. Undefined when there are none. */
+  fixPrompt?: string;
   /** Checks that ran in full and found nothing. A partial or skipped check never lands here. */
   noProblemsFound: string[];
   /** Everything we couldn't vouch for. Each report must show this. */
@@ -76,12 +81,11 @@ export function summarizeReport(report: ScanReport): ReportSummary {
 
   return {
     headline: headlineFor(findings.length, checksRan),
-    fixFirst: findings[0],
     findings,
-    severityCounts: SEVERITIES.map((severity) => ({
-      severity,
-      count: findings.filter((finding) => finding.severity === severity).length,
-    })).filter(({ count }) => count > 0),
+    fixPrompt:
+      findings.length > 0
+        ? buildFixPrompt(findings, report.tool, report.stack)
+        : undefined,
     noProblemsFound,
     notChecked,
   };

@@ -24,6 +24,13 @@ export interface ManualFix {
   snippet: string;
 }
 
+export interface AiFix {
+  /** What the scan found, without a closing period. */
+  problem: string;
+  /** What to ask the AI tool to do about it. */
+  request: string;
+}
+
 export interface Finding {
   checkId: string;
   title: string;
@@ -34,6 +41,6 @@ export interface Finding {
   manualFix: ManualFix;
   /** Something urgent to do before the fix, like replacing a leaked key. */
   safetyStep?: string;
-  /** Ready-to-paste prompt tailored to the detected AI tool. */
-  aiFixPrompt: string;
+  /** This finding's part of the report's single fix prompt. See `buildFixPrompt`. */
+  aiFix: AiFix;
 }

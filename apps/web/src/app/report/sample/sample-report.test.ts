@@ -6,8 +6,16 @@ describe('sample report', () => {
   it('opens with its most severe finding', () => {
     const summary = summarizeReport(SAMPLE_REPORT);
 
-    expect(summary.fixFirst?.severity).toBe('critical');
+    expect(summary.findings[0]?.severity).toBe('critical');
     expect(summary.headline).toBe('We found 3 things to fix.');
+  });
+
+  it('has one fix prompt covering all of its findings', () => {
+    const summary = summarizeReport(SAMPLE_REPORT);
+
+    for (const { title } of summary.findings) {
+      expect(summary.fixPrompt).toContain(title);
+    }
   });
 
   it('lists what was not checked', () => {

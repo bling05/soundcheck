@@ -31,7 +31,7 @@ export const RULE_CONTENT: Record<RuleId, RuleContent> = {
     },
     manualFix: {
       description:
-        'Add this header in your hosting or framework settings. Start in report-only mode, because a strict list can break your site if it leaves out a service you use, like your database or analytics. Add those services to the list, and once the browser console shows no warnings, rename the header to Content-Security-Policy.',
+        'Start in report-only mode, because a strict list can break your site if it leaves out a service you use, like your database or analytics. Add those services to the list, and once the browser console shows no warnings, rename the header to Content-Security-Policy.',
       language: 'http',
       snippet:
         "Content-Security-Policy-Report-Only: default-src 'self'; connect-src 'self' https://your-database.example.com",
@@ -53,7 +53,7 @@ export const RULE_CONTENT: Record<RuleId, RuleContent> = {
     },
     manualFix: {
       description:
-        'Add this header in your hosting or framework settings. Only do this once your whole site works over HTTPS, because browsers will refuse the plain version for as long as the header says, here one year.',
+        'Only do this once your whole site works over HTTPS, because browsers will refuse the plain version for as long as the header says, here one year.',
       language: 'http',
       snippet: 'Strict-Transport-Security: max-age=31536000',
     },
@@ -74,7 +74,7 @@ export const RULE_CONTENT: Record<RuleId, RuleContent> = {
     },
     manualFix: {
       description:
-        'Add this header in your hosting or framework settings. If your own site needs to embed its pages, use SAMEORIGIN instead of DENY.',
+        'If your own site needs to embed its pages, use SAMEORIGIN instead of DENY.',
       language: 'http',
       snippet: 'X-Frame-Options: DENY',
     },
@@ -94,8 +94,7 @@ export const RULE_CONTENT: Record<RuleId, RuleContent> = {
       cwe: ['CWE-693'],
     },
     manualFix: {
-      description:
-        'Add this header in your hosting or framework settings. It is safe for almost every site.',
+      description: 'It is safe for almost every site.',
       language: 'http',
       snippet: 'X-Content-Type-Options: nosniff',
     },

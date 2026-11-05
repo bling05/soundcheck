@@ -1,4 +1,5 @@
 import {
+  describeStack,
   summarizeReport,
   type Evidence,
   type Finding,
@@ -6,16 +7,17 @@ import {
 } from '@soundcheck/report';
 import { CopyButton } from './copy-button';
 
-function evidenceLine(evidence: Evidence): string {
+/** Just the place, for a closed block. The full line shows when it's opened. */
+function evidenceWhere(evidence: Evidence): string {
   switch (evidence.kind) {
     case 'header':
-      return `${evidence.header}: ${evidence.detail}`;
+      return evidence.header;
     case 'url':
-      return `${new URL(evidence.url).pathname}: ${evidence.detail}`;
-    case 'file': {
-      const line = evidence.line ? `:${evidence.line}` : '';
-      return `${evidence.path}${line}: ${evidence.detail}`;
-    }
+      return new URL(evidence.url).pathname;
+    case 'file':
+      return evidence.line
+        ? `${evidence.path}:${evidence.line}`
+        : evidence.path;
   }
 }
 
@@ -23,42 +25,83 @@ function capitalize(text: string): string {
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 }
 
-function FindingSection({ finding }: { finding: Finding }) {
-  const { lesson, manualFix } = finding;
+function FindingBlock({ finding }: { finding: Finding }) {
+  const { lesson, manualFix, evidence } = finding;
+  const [firstEvidence] = evidence;
+  const severity = capitalize(finding.severity);
   return (
-    <section className="finding">
-      <h3>{finding.title}</h3>
-      <p className={`severity severity-${finding.severity}`}>
-        {capitalize(finding.severity)}
-      </p>
-      {finding.evidence.map((evidence) => (
-        <p className="evidence" key={evidenceLine(evidence)}>
-          <code>{evidenceLine(evidence)}</code>
-        </p>
-      ))}
-      <p>{lesson.howItIsExploited}</p>
-      {finding.safetyStep && (
+    <details className="finding">
+      <summary>
+        <span
+          className={`dot severity-${finding.severity}`}
+          aria-hidden="true"
+        />
+        <span className="finding-title">
+          <span>{finding.title}</span>
+          <code>
+            {firstEvidence && evidenceWhere(firstEvidence)}
+            {evidence.length > 1 && ` and ${evidence.length - 1} more`}
+          </code>
+        </span>
+        <span className="finding-severity">{severity}</span>
+      </summary>
+      <div className="finding-body">
+        <ul className="evidence">
+          {evidence.map((item) => (
+            <li key={`${evidenceWhere(item)}-${item.detail}`}>
+              <code>{evidenceWhere(item)}</code>: {item.detail}
+            </li>
+          ))}
+        </ul>
+        <p>{lesson.howItIsExploited}</p>
         <p>
-          <strong>Do this first:</strong> {finding.safetyStep}
+          {lesson.whatItIs} {lesson.whyAiToolsProduceIt}
         </p>
-      )}
-      <CopyButton text={finding.aiFixPrompt} />
-      <details>
-        <summary>Learn more</summary>
-        <h4>What this is</h4>
-        <p>{lesson.whatItIs}</p>
-        <h4>Why AI tools do this</h4>
-        <p>{lesson.whyAiToolsProduceIt}</p>
-        <h4>How to fix it yourself</h4>
-        <p>{manualFix.description}</p>
+        <p>
+          <strong>To fix it by hand:</strong> {manualFix.description}
+        </p>
         <pre>
           <code>{manualFix.snippet}</code>
         </pre>
-        <h4>Prompt for your AI tool</h4>
-        <pre>
-          <code>{finding.aiFixPrompt}</code>
-        </pre>
         <p className="muted">{[...lesson.owasp, ...lesson.cwe].join(' · ')}</p>
+      </div>
+    </details>
+  );
+}
+
+function FixEverything({
+  findings,
+  prompt,
+}: {
+  findings: Finding[];
+  prompt: string;
+}) {
+  const safetySteps = findings.filter(({ safetyStep }) => safetyStep);
+  return (
+    <section className="fix-all">
+      {safetySteps.length > 0 && (
+        <>
+          <p>
+            <strong>Do this first, because your AI tool can&apos;t:</strong>
+          </p>
+          <ul>
+            {safetySteps.map(({ title, safetyStep }) => (
+              <li key={title}>
+                {title}. {safetyStep}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      <p>
+        This one prompt covers everything above. Paste it into your AI tool.
+      </p>
+      <CopyButton text={prompt} />
+      <details>
+        <summary>See the prompt</summary>
+        <pre>
+          <code>{prompt}</code>
+        </pre>
       </details>
     </section>
   );
@@ -75,35 +118,32 @@ export function Report({ report }: { report: ScanReport }) {
     <>
       <header>
         <h1>{new URL(report.url).hostname}</h1>
-        <p className="muted">Scanned {scanned}</p>
+        <p className="muted">
+          Scanned {scanned}.
+          {report.stack &&
+            report.stack.length > 0 &&
+            ` Looks like it's built with ${describeStack(report.stack)}.`}
+        </p>
       </header>
 
-      <section>
-        <h2>{summary.headline}</h2>
-        {summary.fixFirst && (
-          <p>
-            Start with: <strong>{summary.fixFirst.title}</strong>
-          </p>
-        )}
-        {summary.severityCounts.length > 0 && (
-          <p className="muted">
-            {summary.severityCounts
-              .map(({ severity, count }) => `${count} ${severity}`)
-              .join(', ')}
-          </p>
-        )}
-      </section>
+      <p className="summary">
+        {summary.headline}
+        {summary.findings.length > 1 && ' The most serious is first.'}
+      </p>
 
       {summary.findings.length > 0 && (
         <section>
-          <h2>What to fix</h2>
           {summary.findings.map((finding, index) => (
-            <FindingSection
+            <FindingBlock
               finding={finding}
               key={`${finding.checkId}-${index}`}
             />
           ))}
         </section>
+      )}
+
+      {summary.fixPrompt && (
+        <FixEverything findings={summary.findings} prompt={summary.fixPrompt} />
       )}
 
       {summary.noProblemsFound.length > 0 && (

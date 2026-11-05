@@ -1,11 +1,22 @@
 import type { Finding } from '@soundcheck/report';
-import { buildFixPrompt } from '../fix-prompt';
+import type { Technology } from '@soundcheck/shared';
 import { withoutQuery } from '../site-files';
 import type { Check, CheckContext, CheckResult } from '../types';
 import { RULE_CONTENT } from './content';
 import { findProblems } from './rules';
 
 const CHECK_ID = 'security-headers';
+
+/** Names the file only when the stack makes it clear. Next.js settings work on any host, so they win. */
+function whereToAddHeader(technologies: readonly Technology[] = []): string {
+  if (technologies.includes('nextjs')) {
+    return 'Add this header in the headers() section of your next.config file.';
+  }
+  if (technologies.includes('vercel')) {
+    return 'Add this header in the "headers" section of your vercel.json file.';
+  }
+  return 'Add this header in your hosting or framework settings.';
+}
 
 async function run(context: CheckContext): Promise<CheckResult> {
   if (!context.url) {
@@ -39,8 +50,11 @@ async function run(context: CheckContext): Promise<CheckResult> {
         source: 'live',
         evidence: [{ kind: 'header', url, header, detail }],
         lesson,
-        manualFix,
-        aiFixPrompt: buildFixPrompt(context.tool, title, fixRequest),
+        manualFix: {
+          ...manualFix,
+          description: `${whereToAddHeader(context.technologies)} ${manualFix.description}`,
+        },
+        aiFix: { problem: title, request: fixRequest },
       };
     },
   );

@@ -7,7 +7,7 @@ type CopyState = 'idle' | 'copied' | 'failed';
 const LABELS: Record<CopyState, string> = {
   idle: 'Copy fix prompt',
   copied: 'Copied',
-  failed: "Couldn't copy. It's under Learn more.",
+  failed: "Couldn't copy. Open the prompt below to copy it by hand.",
 };
 
 export function CopyButton({ text }: { text: string }) {

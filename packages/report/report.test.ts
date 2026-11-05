@@ -18,7 +18,7 @@ function finding(title: string, severity: Severity): Finding {
       cwe: [],
     },
     manualFix: { description: '', language: 'text', snippet: '' },
-    aiFixPrompt: '',
+    aiFix: { problem: title, request: `Fix ${title}.` },
   };
 }
 
@@ -54,7 +54,7 @@ const skipped = (title: string, reason: string): CheckOutcome => ({
 });
 
 describe('summarizeReport', () => {
-  it('sorts findings across checks and picks the worst to fix first', () => {
+  it('sorts findings across checks, worst first', () => {
     const summary = summarizeReport(
       report([
         ran('A', [finding('low one', 'low')]),
@@ -66,31 +66,41 @@ describe('summarizeReport', () => {
       'critical one',
       'low one',
     ]);
-    expect(summary.fixFirst?.title).toBe('critical one');
     expect(summary.headline).toBe('We found 2 things to fix.');
+  });
+
+  it('builds one fix prompt from every finding, worst first', () => {
+    const { fixPrompt } = summarizeReport({
+      ...report([
+        ran('A', [finding('low one', 'low')]),
+        ran('B', [finding('critical one', 'critical')]),
+      ]),
+      tool: 'cursor',
+    });
+
+    expect(fixPrompt).toContain('this Cursor project');
+    expect(fixPrompt?.indexOf('critical one')).toBeLessThan(
+      fixPrompt?.indexOf('low one') ?? -1,
+    );
+  });
+
+  it('passes the detected stack to the fix prompt', () => {
+    const { fixPrompt } = summarizeReport({
+      ...report([ran('A', [finding('x', 'low')])]),
+      stack: ['vite'],
+    });
+
+    expect(fixPrompt).toContain('The scan detected Vite.');
+  });
+
+  it('has no fix prompt when there is nothing to fix', () => {
+    expect(summarizeReport(report([ran('A')])).fixPrompt).toBeUndefined();
   });
 
   it('uses the singular for one finding', () => {
     const summary = summarizeReport(report([ran('A', [finding('x', 'low')])]));
 
     expect(summary.headline).toBe('We found 1 thing to fix.');
-  });
-
-  it('counts only the severities present, worst first', () => {
-    const summary = summarizeReport(
-      report([
-        ran('A', [
-          finding('a', 'low'),
-          finding('b', 'high'),
-          finding('c', 'low'),
-        ]),
-      ]),
-    );
-
-    expect(summary.severityCounts).toEqual([
-      { severity: 'high', count: 1 },
-      { severity: 'low', count: 2 },
-    ]);
   });
 
   it('never shows a skipped check as having no problems', () => {
@@ -141,7 +151,6 @@ describe('summarizeReport', () => {
     expect(summary.headline).toContain(
       "doesn't mean your site is fully secure",
     );
-    expect(summary.fixFirst).toBeUndefined();
   });
 
   it('says so when nothing could be checked', () => {

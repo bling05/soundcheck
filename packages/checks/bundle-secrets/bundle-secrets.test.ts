@@ -305,7 +305,7 @@ describe('finding contents', () => {
     for (const finding of await findingsFor(leakyContext())) {
       expect(finding.manualFix.description).toContain('Create a new key');
       expect(finding.manualFix.description).toContain('Delete the old key');
-      expect(finding.aiFixPrompt).toContain('delete the old one');
+      expect(finding.aiFix.request).toContain('delete the old one');
       expect(finding.safetyStep).toContain('Create a new key');
     }
   });
@@ -314,11 +314,5 @@ describe('finding contents', () => {
     const findings = await findingsFor(leakyContext());
 
     expect(JSON.stringify(findings)).not.toContain('—');
-  });
-
-  it('names the detected tool in the fix prompt', async () => {
-    const [finding] = await findingsFor(leakyContext({ tool: 'bolt' }));
-
-    expect(finding?.aiFixPrompt).toContain('Bolt');
   });
 });

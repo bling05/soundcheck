@@ -297,7 +297,24 @@ describe('finding contents', () => {
       expect(finding.lesson.owasp.length).toBeGreaterThan(0);
       expect(finding.lesson.cwe.length).toBeGreaterThan(0);
       expect(finding.manualFix.snippet).not.toBe('');
-      expect(finding.aiFixPrompt).toContain(finding.title);
+      expect(finding.aiFix.problem).toBe(finding.title);
+      expect(finding.aiFix.request).not.toBe('');
+    }
+  });
+
+  it.each([
+    [['nextjs', 'vercel'], 'next.config'],
+    [['vercel'], 'vercel.json'],
+    [['vite'], 'hosting or framework settings'],
+    [undefined, 'hosting or framework settings'],
+  ] as const)('with %j, says to look in %s', async (technologies, where) => {
+    const findings = await findingsFor(
+      contextFor({ headers: {} }, { technologies }),
+    );
+
+    expect(findings.length).toBeGreaterThan(0);
+    for (const finding of findings) {
+      expect(finding.manualFix.description).toContain(where);
     }
   });
 
@@ -305,20 +322,6 @@ describe('finding contents', () => {
     const findings = await findingsFor(contextFor({ headers: {} }));
 
     expect(JSON.stringify(findings)).not.toContain('—');
-  });
-
-  it('names the detected tool in the fix prompt', async () => {
-    const [finding] = await findingsFor(
-      contextFor({ headers: {} }, { tool: 'lovable' }),
-    );
-
-    expect(finding?.aiFixPrompt).toContain('Lovable');
-  });
-
-  it('writes a general fix prompt when no tool was detected', async () => {
-    const [finding] = await findingsFor(contextFor({ headers: {} }));
-
-    expect(finding?.aiFixPrompt).toContain('in this project');
   });
 
   it('never repeats the site header text or query string in a finding', async () => {

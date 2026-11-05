@@ -1,14 +1,17 @@
 :root {
-  --color-background: #16191d;
-  --color-text: #e8eaed;
-  --color-text-muted: #9aa1a9;
-  --color-border: #333a42;
-  --color-accent: #3ddc84;
-  --color-critical: #e8a598;
-  --color-high: #e6b98a;
-  --color-medium: #dccb8c;
-  --color-low: #a9c3d9;
-  --color-info: #9aa1a9;
+  color-scheme: light;
+  --color-background: #fdfdfc;
+  --color-text: #1f2124;
+  --color-text-muted: #5c6066;
+  --color-border: #c8cac9;
+  --color-code-background: #f1f1ef;
+  --color-accent: #0b6b3f;
+  --color-on-accent: #ffffff;
+  --color-critical: #b3412f;
+  --color-high: #c26a1b;
+  --color-medium: #c79a00;
+  --color-low: #4a7fa8;
+  --color-info: #8a8d91;
 }
 
 * {
@@ -106,13 +109,83 @@ a {
   color: var(--color-text-muted);
 }
 
-.finding {
-  padding: 1.5rem 0;
-  border-top: 1px solid var(--color-border);
+.report .summary {
+  margin-top: 1.5rem;
+  font-size: 1.125rem;
 }
 
-.severity {
-  font-weight: 600;
+.finding {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.report .finding {
+  margin-top: 0.75rem;
+}
+
+.report .finding > summary {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: 6px;
+  color: var(--color-text);
+  list-style: none;
+}
+
+.finding > summary::-webkit-details-marker {
+  display: none;
+}
+
+.finding > summary::after {
+  content: '▸';
+  color: var(--color-text-muted);
+}
+
+.finding[open] > summary::after {
+  content: '▾';
+}
+
+.dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-top: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.finding-severity {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.finding-title code {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.finding-body {
+  padding: 0 1rem 0.5rem 2.375rem;
+}
+
+.report .evidence {
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.fix-all {
+  margin-top: 2rem;
+}
+
+.report .fix-all ul {
+  margin-bottom: 1.25rem;
 }
 
 .severity-critical {
@@ -135,17 +208,12 @@ a {
   color: var(--color-info);
 }
 
-.evidence code {
-  font-size: 0.875rem;
-  overflow-wrap: anywhere;
-}
-
 .report button {
   padding: 0.5rem 0.875rem;
   border: 0;
   border-radius: 2px;
   background: var(--color-accent);
-  color: #0d1014;
+  color: var(--color-on-accent);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -163,7 +231,7 @@ a {
 .report pre {
   margin: 0 0 0.75rem;
   padding: 0.75rem;
-  border: 1px solid var(--color-border);
+  background: var(--color-code-background);
   font-size: 0.8125rem;
   white-space: pre-wrap;
   overflow-wrap: anywhere;

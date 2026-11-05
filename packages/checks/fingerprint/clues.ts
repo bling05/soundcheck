@@ -1,12 +1,6 @@
-export type Technology =
-  | 'supabase'
-  | 'firebase'
-  | 'nextjs'
-  | 'vite'
-  | 'vercel'
-  | 'lovable'
-  | 'bolt'
-  | 'base44';
+import type { Technology } from '@soundcheck/shared';
+
+export type { Technology };
 
 export interface Clue {
   technology: Technology;

@@ -1,4 +1,3 @@
-import { buildFixPrompt } from '../fix-prompt';
 import { readSite } from '../site-files';
 import type { Check, CheckContext, CheckResult } from '../types';
 import { RULE_CONTENT } from './content';
@@ -53,11 +52,10 @@ async function run(context: CheckContext): Promise<CheckResult> {
       })),
       lesson,
       manualFix,
-      aiFixPrompt: buildFixPrompt(
-        context.tool,
-        `${title}. The key ends in ${redacted}`,
-        fixRequest,
-      ),
+      aiFix: {
+        problem: `${title}. The key ends in ${redacted}`,
+        request: fixRequest,
+      },
     };
   });
 

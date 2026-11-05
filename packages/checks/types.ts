@@ -1,5 +1,5 @@
 import type { Finding } from '@soundcheck/report';
-import type { AiTool, Platform } from '@soundcheck/shared';
+import type { Platform, Technology } from '@soundcheck/shared';
 import type { GuardedFetch } from './request-guard';
 
 export type CheckMode = 'url-passive' | 'url-active' | 'repo';
@@ -13,8 +13,8 @@ export interface CheckContext {
   repoPath?: string;
   /** Platforms found by fingerprinting. */
   platforms: Platform[];
-  /** AI tool to tailor fix prompts for, if one was detected. */
-  tool?: AiTool;
+  /** Everything found by fingerprinting, used to make fixes more specific. */
+  technologies?: readonly Technology[];
 }
 
 /** A skipped check is never a pass: `reason` is shown in the report's "Not checked" section. */

@@ -5,14 +5,6 @@ const OWASP = ['A05:2021 Security Misconfiguration'];
 const WHY_HEADERS =
   'AI tools build what you ask for, and nobody asks for this. The app works fine without it, so nothing prompts the tool to add it.';
 
-const prompt = (problem: string, request: string) =>
-  [
-    "You're helping me fix a security issue in this Lovable project.",
-    `A scan found this: ${problem}.`,
-    request,
-    "Don't change anything else. If something stops you from doing this, like my hosting not allowing it, tell me instead of working around it.",
-  ].join('\n\n');
-
 const supabaseLesson: Lesson = {
   whatItIs:
     'Supabase has two kinds of key. The anon key is meant to be public, and your security rules limit what it can do. The secret key, also called service role, skips those rules completely.',
@@ -28,6 +20,8 @@ const supabaseLesson: Lesson = {
 export const SAMPLE_REPORT: ScanReport = {
   url: URL_SCANNED,
   scannedAt: '2026-11-04T12:00:00.000Z',
+  tool: 'lovable',
+  stack: ['supabase', 'vite', 'lovable'],
   outcomes: [
     {
       checkId: 'security-headers',
@@ -63,10 +57,11 @@ export const SAMPLE_REPORT: ScanReport = {
             language: 'http',
             snippet: 'X-Frame-Options: DENY',
           },
-          aiFixPrompt: prompt(
-            'Other websites can embed your site inside theirs',
-            'Add the header X-Frame-Options: DENY to every response. If this app embeds its own pages in frames, use SAMEORIGIN instead and tell me which one you chose.',
-          ),
+          aiFix: {
+            problem: 'Other websites can embed your site inside theirs',
+            request:
+              'Add the header X-Frame-Options: DENY to every response. If this app embeds its own pages in frames, use SAMEORIGIN instead and tell me which one you chose.',
+          },
         },
         {
           checkId: 'security-headers',
@@ -97,10 +92,11 @@ export const SAMPLE_REPORT: ScanReport = {
             snippet:
               "Content-Security-Policy-Report-Only: default-src 'self'; connect-src 'self' https://your-database.example.com",
           },
-          aiFixPrompt: prompt(
-            "Your site doesn't limit which scripts can run",
-            'Add a Content-Security-Policy header. Start with Content-Security-Policy-Report-Only so nothing breaks, and list every outside service this app really uses, such as its database, auth, and analytics. Then tell me how to check for warnings and when to switch it to enforcing.',
-          ),
+          aiFix: {
+            problem: "Your site doesn't limit which scripts can run",
+            request:
+              'Add a Content-Security-Policy header. Start with Content-Security-Policy-Report-Only so nothing breaks, and list every outside service this app really uses, such as its database, auth, and analytics. Then tell me how to check for warnings and when to switch it to enforcing.',
+          },
         },
       ],
     },
@@ -131,10 +127,12 @@ export const SAMPLE_REPORT: ScanReport = {
             snippet:
               '// Runs on your server only. Never start this name with NEXT_PUBLIC_ or VITE_.\nconst key = process.env.SUPABASE_SECRET_KEY;',
           },
-          aiFixPrompt: prompt(
-            "Your Supabase secret key is in your site's public code. The key ends in ****9f3a",
-            "Move every Supabase secret key call out of browser code and into code that only runs on the server, reading the key from a private environment variable named SUPABASE_SECRET_KEY. The name must not start with NEXT_PUBLIC_ or VITE_. Remove the key from the code entirely, and don't print it or repeat it. Then remind me that I still need to create a new key and delete the old one myself, because the old one is already public.",
-          ),
+          aiFix: {
+            problem:
+              "Your Supabase secret key is in your site's public code. The key ends in ****9f3a",
+            request:
+              "Move every Supabase secret key call out of browser code and into code that only runs on the server, reading the key from a private environment variable named SUPABASE_SECRET_KEY. The name must not start with NEXT_PUBLIC_ or VITE_. Remove the key from the code entirely, and don't print it or repeat it. Then remind me that I still need to create a new key and delete the old one myself, because the old one is already public.",
+          },
         },
       ],
     },
