@@ -17,7 +17,7 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: 'Soundcheck',
   description:
-    'Free, open-source security scanner and learning site for apps built with AI tools.',
+    'Free security scanner and learning site for apps built with AI tools.',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
