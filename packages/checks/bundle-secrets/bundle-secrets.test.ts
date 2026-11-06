@@ -310,6 +310,58 @@ describe('finding contents', () => {
     }
   });
 
+  it('gives each key an id from its type and last 4 characters', async () => {
+    const findings = await findingsFor(
+      contextFor({
+        '/': { body: `<script>"${FAKE_KEYS.stripeSecret}"</script>` },
+      }),
+    );
+
+    expect(findings.map(({ id }) => id)).toEqual([
+      `bundle-secrets:stripe-secret:****${FAKE_KEYS.stripeSecret.slice(-4)}`,
+    ]);
+  });
+
+  it('keeps the same id on every scan, whatever file the key moves to', async () => {
+    const key = `"${FAKE_KEYS.stripeSecret}"`;
+    const inPage = await findingsFor(
+      contextFor({ '/': { body: `<script>${key}</script>` } }),
+    );
+    const inFile = await findingsFor(
+      contextFor({
+        '/': { body: '<script src="/app.js"></script>' },
+        '/app.js': { body: key },
+      }),
+    );
+
+    expect(inFile.map(({ id }) => id)).toEqual(inPage.map(({ id }) => id));
+  });
+
+  it('gives different keys with the same last 4 characters different ids', async () => {
+    const lookalike = FAKE_KEYS.stripeSecret.replace('live_0', 'live_9');
+    const findings = await findingsFor(
+      contextFor({
+        '/': {
+          body: `<script>"${FAKE_KEYS.stripeSecret}" "${lookalike}"</script>`,
+        },
+      }),
+    );
+
+    const ids = findings.map(({ id }) => id);
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
+  });
+
+  it('never puts a full key in an id', async () => {
+    const findings = await findingsFor(leakyContext());
+
+    for (const { id } of findings) {
+      for (const key of Object.values(FAKE_KEYS)) {
+        expect(id).not.toContain(key.slice(0, -4));
+      }
+    }
+  });
+
   it('uses no em dashes in anything a user reads', async () => {
     const findings = await findingsFor(leakyContext());
 

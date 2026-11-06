@@ -29,6 +29,7 @@ export const SAMPLE_REPORT: ScanReport = {
       status: 'ran',
       findings: [
         {
+          id: 'security-headers:frame-protection:/',
           checkId: 'security-headers',
           title: 'Other websites can embed your site inside theirs',
           severity: 'low',
@@ -64,6 +65,7 @@ export const SAMPLE_REPORT: ScanReport = {
           },
         },
         {
+          id: 'security-headers:content-security-policy:/',
           checkId: 'security-headers',
           title: "Your site doesn't limit which scripts can run",
           severity: 'medium',
@@ -106,6 +108,7 @@ export const SAMPLE_REPORT: ScanReport = {
       status: 'ran',
       findings: [
         {
+          id: 'bundle-secrets:supabase-secret:****9f3a',
           checkId: 'bundle-secrets',
           title: "Your Supabase secret key is in your site's public code",
           severity: 'critical',

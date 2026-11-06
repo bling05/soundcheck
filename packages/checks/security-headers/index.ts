@@ -1,4 +1,4 @@
-import type { Finding } from '@soundcheck/report';
+import { findingId, type Finding } from '@soundcheck/report';
 import type { Technology } from '@soundcheck/shared';
 import { withoutQuery } from '../site-files';
 import type { Check, CheckContext, CheckResult } from '../types';
@@ -39,11 +39,13 @@ async function run(context: CheckContext): Promise<CheckResult> {
   }
 
   const url = withoutQuery(response.url);
+  const page = new URL(url).pathname;
   const findings = findProblems(response.headers, response.body.toString()).map(
     ({ rule, header, detail }): Finding => {
       const { title, severity, lesson, manualFix, fixRequest } =
         RULE_CONTENT[rule];
       return {
+        id: findingId(CHECK_ID, rule, page),
         checkId: CHECK_ID,
         title,
         severity,

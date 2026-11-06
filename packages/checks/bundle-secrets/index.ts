@@ -1,3 +1,4 @@
+import { findingId, withUniqueIds } from '@soundcheck/report';
 import { readSite } from '../site-files';
 import type { Check, CheckContext, CheckResult } from '../types';
 import { RULE_CONTENT } from './content';
@@ -36,10 +37,12 @@ async function run(context: CheckContext): Promise<CheckResult> {
     return { status: 'skipped', reason: PARTIAL_READ };
   }
 
-  const findings = leaks.map(({ rule, redacted, locations }) => {
+  const found = leaks.map(({ rule, redacted, locations }) => {
     const { title, severity, lesson, manualFix, fixRequest } =
       RULE_CONTENT[rule];
     return {
+      // The redacted key, so the same leaked key keeps its id until it's replaced.
+      id: findingId(CHECK_ID, rule, redacted),
       checkId: CHECK_ID,
       title,
       severity,
@@ -58,6 +61,7 @@ async function run(context: CheckContext): Promise<CheckResult> {
       },
     };
   });
+  const findings = withUniqueIds(found);
 
   return site.complete
     ? { status: 'ran', findings }

@@ -4,6 +4,7 @@ import type { Finding } from './types';
 
 function finding(problem: string, request: string): Finding {
   return {
+    id: `test:${problem}`,
     checkId: 'test',
     title: problem,
     severity: 'low',

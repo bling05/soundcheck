@@ -32,6 +32,11 @@ export interface AiFix {
 }
 
 export interface Finding {
+  /**
+   * The same problem in the same place gets the same id on every scan, so
+   * rescans can tell what's fixed. Build it with `findingId`.
+   */
+  id: string;
   checkId: string;
   title: string;
   severity: Severity;

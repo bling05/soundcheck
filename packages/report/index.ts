@@ -1,3 +1,5 @@
+export { compareScans, findingId, withUniqueIds } from './finding-id';
+export type { ScanComparison } from './finding-id';
 export { buildFixPrompt } from './fix-prompt';
 export { summarizeReport } from './report';
 export type {

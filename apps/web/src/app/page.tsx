@@ -17,7 +17,7 @@ export default function HomePage() {
           One prompt that fixes everything. Paste it into Lovable, Cursor, or
           Bolt.
         </li>
-        <li>A plain-English explanation of every problem it finds.</li>
+        <li>An explanation of every problem it finds.</li>
         <li>Scans your code and your live site.</li>
         <li>Rescan to see what&apos;s fixed.</li>
       </ul>

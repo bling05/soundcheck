@@ -318,6 +318,29 @@ describe('finding contents', () => {
     }
   });
 
+  it('gives each problem an id from its rule and page, the same on every scan', async () => {
+    const first = await findingsFor(contextFor({ headers: {} }));
+    const second = await findingsFor(contextFor({ headers: {} }));
+
+    expect(first.map(({ id }) => id)).toEqual([
+      'security-headers:content-security-policy:/',
+      'security-headers:strict-transport-security:/',
+      'security-headers:frame-protection:/',
+      'security-headers:content-type-options:/',
+    ]);
+    expect(second.map(({ id }) => id)).toEqual(first.map(({ id }) => id));
+  });
+
+  it('uses the page the site ended up on, without its query string', async () => {
+    const findings = await findingsFor(
+      contextFor({ headers: {}, url: 'https://site.test/home?ref=ad' }),
+    );
+
+    expect(findings[0]?.id).toBe(
+      'security-headers:content-security-policy:/home',
+    );
+  });
+
   it('uses no em dashes in anything a user reads', async () => {
     const findings = await findingsFor(contextFor({ headers: {} }));
 
