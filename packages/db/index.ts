@@ -1,18 +1,17 @@
 export {
-  claimNextScan,
   closeDatabase,
-  countQueuedScans,
+  countActiveScans,
   countRecentScansBy,
   createScan,
+  failIfStuck,
   failScan,
   failStuckScans,
   findRecentScan,
   finishScan,
   getScan,
   isScanId,
-  requeueScan,
+  markRunning,
   saveProgress,
-  scansAhead,
   setPlannedChecks,
 } from './scans';
 export type { PlannedCheck, Scan, ScanStatus } from './scans';

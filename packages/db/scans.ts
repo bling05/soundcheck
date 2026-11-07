@@ -3,7 +3,7 @@ import { pool } from './pool';
 
 export type ScanStatus = 'queued' | 'running' | 'done' | 'failed';
 
-/** A check the worker plans to run, so the scan page can list it before it finishes. */
+/** A check the scan plans to run, so the scan page can list it before it finishes. */
 export interface PlannedCheck {
   id: string;
   title: string;
@@ -83,15 +83,6 @@ export async function getScan(id: string): Promise<Scan | undefined> {
   return rows[0] && fromRow(rows[0]);
 }
 
-/** How many scans are waiting in line before this one. */
-export async function scansAhead(scan: Scan): Promise<number> {
-  const { rows } = await pool().query<{ count: string }>(
-    "select count(*) from scans where status = 'queued' and requested_at < $1",
-    [scan.requestedAt],
-  );
-  return Number(rows[0]?.count ?? 0);
-}
-
 // ---- Limits, used by the website before queueing a scan ----
 
 /** A scan of this exact link from the last few minutes that didn't fail, newest first. */
@@ -121,29 +112,26 @@ export async function countRecentScansBy(
   return Number(rows[0]?.count ?? 0);
 }
 
-export async function countQueuedScans(): Promise<number> {
+/** Scans that haven't finished yet, to cap how many run at once. */
+export async function countActiveScans(): Promise<number> {
   const { rows } = await pool().query<{ count: string }>(
-    "select count(*) from scans where status = 'queued'",
+    "select count(*) from scans where status in ('queued', 'running')",
   );
   return Number(rows[0]?.count ?? 0);
 }
 
-// ---- The worker's side of the queue ----
+// ---- Running a scan ----
 
 /**
- * Takes the oldest queued scan and marks it running, or returns undefined if none are
- * waiting. `skip locked` means two workers asking at once never get the same scan.
+ * Marks a queued scan as running. Returns false if it had already started, so a scan can
+ * never be run twice.
  */
-export async function claimNextScan(): Promise<Scan | undefined> {
-  const { rows } = await pool().query<ScanRow>(
-    `update scans set status = 'running', started_at = now()
-     where id = (
-       select id from scans where status = 'queued'
-       order by requested_at for update skip locked limit 1
-     )
-     returning ${COLUMNS}`,
+export async function markRunning(id: string): Promise<boolean> {
+  const { rowCount } = await pool().query(
+    "update scans set status = 'running', started_at = now() where id = $1 and status = 'queued'",
+    [id],
   );
-  return rows[0] && fromRow(rows[0]);
+  return rowCount === 1;
 }
 
 export async function setPlannedChecks(
@@ -185,29 +173,42 @@ export async function failScan(id: string, failure: string): Promise<void> {
   );
 }
 
-/** Puts a scan back in line, for when the worker stops partway through. */
-export async function requeueScan(id: string): Promise<void> {
-  await pool().query(
-    `update scans set status = 'queued', started_at = null, checks = '[]', report = null
-     where id = $1 and status = 'running'`,
-    [id],
-  );
-}
-
-/** Fails scans left running by a worker that crashed. Returns how many it found. */
+/**
+ * Fails scans that never finished, for example because the host cut the scan off at its
+ * time limit. Without this their page would say "running" forever. Returns how many it found.
+ */
 export async function failStuckScans(
   olderThanMinutes: number,
 ): Promise<number> {
   const { rowCount } = await pool().query(
     `update scans set status = 'failed', finished_at = now(),
        failure = 'This scan stopped before it finished. Try scanning again.'
-     where status = 'running' and started_at < now() - make_interval(mins => $1)`,
+     where status in ('queued', 'running')
+       and requested_at < now() - make_interval(mins => $1)`,
     [olderThanMinutes],
   );
   return rowCount ?? 0;
 }
 
-/** Closes the connection pool, so a script or worker can exit cleanly. */
+/**
+ * Fails this one scan if it has gone unfinished for too long. Returns true if it did. The
+ * time check happens in the database, so the scan page never has to read the clock.
+ */
+export async function failIfStuck(
+  id: string,
+  olderThanMinutes: number,
+): Promise<boolean> {
+  const { rowCount } = await pool().query(
+    `update scans set status = 'failed', finished_at = now(),
+       failure = 'This scan stopped before it finished. Try scanning again.'
+     where id = $1 and status in ('queued', 'running')
+       and requested_at < now() - make_interval(mins => $2)`,
+    [id, olderThanMinutes],
+  );
+  return rowCount === 1;
+}
+
+/** Closes the connection pool, so a script can exit cleanly. */
 export async function closeDatabase(): Promise<void> {
   await pool().end();
 }

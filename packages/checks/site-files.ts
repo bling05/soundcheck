@@ -7,7 +7,7 @@ import type {
 // A browser downloads all of these on every visit, so reading them adds about one visitor's
 // traffic. Real apps split their code across many files: at 10, a real Supabase app was missed.
 const MAX_FILES = 50;
-// Stop reading early so a slow or enormous site can't tie up the worker.
+// Stop reading early so a slow or enormous site can't tie up a scan.
 const MAX_TOTAL_MS = 30_000;
 const MAX_TOTAL_BYTES = 50 * 1024 * 1024;
 

@@ -23,15 +23,8 @@ function stateOf(
   return check.id === firstUnfinished ? 'Checking…' : 'Waiting';
 }
 
-/** What a scan shows before its report is ready: its place in line, then each check's state. */
-export function ScanProgress({
-  scan,
-  ahead,
-}: {
-  scan: Scan;
-  /** Scans waiting before this one. */
-  ahead: number;
-}) {
+/** What a scan shows before its report is ready: each check and how it's going. */
+export function ScanProgress({ scan }: { scan: Scan }) {
   const hostname = new URL(scan.url).hostname;
   const outcomes = scan.report?.outcomes ?? [];
   const firstUnfinished = scan.checks.find(
@@ -42,10 +35,7 @@ export function ScanProgress({
     <>
       <h1>{hostname}</h1>
       <p aria-live="polite">
-        {scan.status === 'queued' &&
-          (ahead > 0
-            ? `Waiting to start. ${plural(ahead, 'scan is', 'scans are')} ahead of yours.`
-            : 'Starting…')}
+        {scan.status === 'queued' && 'Starting…'}
         {scan.status === 'running' &&
           (scan.checks.length === 0
             ? 'Looking at how your site is built…'

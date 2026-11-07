@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  MAX_QUEUED_SCANS,
+  MAX_ACTIVE_SCANS,
   SCANS_PER_VISITOR_PER_HOUR,
   scanRefusal,
   visitorIp,
@@ -11,24 +11,24 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe('scanRefusal', () => {
   it('allows a scan under every limit', () => {
-    expect(scanRefusal({ byVisitorLastHour: 0, queued: 0 })).toBeUndefined();
+    expect(scanRefusal({ byVisitorLastHour: 0, active: 0 })).toBeUndefined();
     expect(
       scanRefusal({
         byVisitorLastHour: SCANS_PER_VISITOR_PER_HOUR - 1,
-        queued: MAX_QUEUED_SCANS - 1,
+        active: MAX_ACTIVE_SCANS - 1,
       }),
     ).toBeUndefined();
   });
 
   it('refuses a visitor who has used up their scans for the hour', () => {
     expect(
-      scanRefusal({ byVisitorLastHour: SCANS_PER_VISITOR_PER_HOUR, queued: 0 }),
+      scanRefusal({ byVisitorLastHour: SCANS_PER_VISITOR_PER_HOUR, active: 0 }),
     ).toContain('in the last hour');
   });
 
-  it('refuses new scans when too many are waiting', () => {
+  it('refuses new scans when too many are running', () => {
     expect(
-      scanRefusal({ byVisitorLastHour: 0, queued: MAX_QUEUED_SCANS }),
+      scanRefusal({ byVisitorLastHour: 0, active: MAX_ACTIVE_SCANS }),
     ).toContain('busy');
   });
 });

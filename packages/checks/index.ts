@@ -16,6 +16,13 @@ export type {
   GuardedFetchResult,
   GuardFailureReason,
 } from './request-guard';
+export {
+  CHECK_TIME_LIMIT_MS,
+  NOT_ATTEMPTED,
+  runScan,
+  SCAN_TIME_LIMIT_MS,
+} from './run-scan';
+export type { PlannedCheck, RunScanOptions, RunScanResult } from './run-scan';
 export type { Check, CheckContext, CheckMode, CheckResult } from './types';
 
 export const checks: readonly Check[] = [

@@ -1,10 +1,10 @@
-import type { Check, CheckResult } from '@soundcheck/checks';
-import { checks } from '@soundcheck/checks';
 import type { ScanReport } from '@soundcheck/report';
 import { afterEach, describe, expect, it } from 'vitest';
-import { leftoverFilesSite } from '../../../fixtures/leftover-files';
-import { startFixture, type RunningFixture } from '../../../fixtures/server';
-import { testFetchFor } from '../../../packages/checks/request-guard/test-fetch';
+import { leftoverFilesSite } from '../../fixtures/leftover-files';
+import { startFixture, type RunningFixture } from '../../fixtures/server';
+import { checks } from './index';
+import { testFetchFor } from './request-guard/test-fetch';
+import type { Check, CheckResult } from './types';
 import { NOT_ATTEMPTED, runScan } from './run-scan';
 
 let site: RunningFixture;

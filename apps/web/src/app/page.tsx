@@ -1,5 +1,9 @@
 import { ScanForm } from '@/components/scan-form';
 
+// Submitting the form runs the whole scan in the background of the same request, so it
+// gets the longest time Vercel's free plan allows. Scans stop themselves at 3 minutes.
+export const maxDuration = 300;
+
 export default function HomePage() {
   return (
     <main className="home">

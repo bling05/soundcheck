@@ -1,12 +1,13 @@
-import type {
-  Check,
-  CheckResult,
-  GuardedFetch,
-  Technology,
-} from '@soundcheck/checks';
-import { fingerprintSite, withRequestCache } from '@soundcheck/checks';
-import type { PlannedCheck } from '@soundcheck/db';
 import type { CheckOutcome, ScanReport } from '@soundcheck/report';
+import { fingerprintSite, type Technology } from './fingerprint';
+import { withRequestCache, type GuardedFetch } from './request-guard';
+import type { Check, CheckResult } from './types';
+
+/** A check a scan will run, so a progress page can list it before it finishes. */
+export interface PlannedCheck {
+  id: string;
+  title: string;
+}
 
 /** Longest one check may take before we stop waiting for it. */
 export const CHECK_TIME_LIMIT_MS = 60_000;

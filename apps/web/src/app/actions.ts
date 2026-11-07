@@ -1,7 +1,7 @@
 'use server';
 
 import {
-  countQueuedScans,
+  countActiveScans,
   countRecentScansBy,
   createScan,
   findRecentScan,
@@ -9,12 +9,14 @@ import {
 import { parseScanUrl } from '@soundcheck/shared';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import {
   RECENT_SCAN_MINUTES,
   scanRefusal,
   visitorIp,
   visitorKey,
 } from '@/server/limits';
+import { describeError, runQueuedScan } from '@/server/run-scan';
 
 export interface StartScanState {
   /** Shown under the form when the scan couldn't start. */
@@ -23,16 +25,10 @@ export interface StartScanState {
 
 const COULD_NOT_START = "We couldn't start the scan. Try again in a minute.";
 
-/** Only the error's type and code: messages can include connection details. */
-function describe(error: unknown): string {
-  const name = error instanceof Error ? error.name : typeof error;
-  const code = (error as { code?: unknown } | null)?.code;
-  return typeof code === 'string' ? `${name} (${code})` : name;
-}
-
 /**
- * Queues a scan of the link in the home page form, then goes to that scan's page. A link
- * scanned in the last few minutes goes to that scan instead, without counting as a new one.
+ * Queues a scan of the link in the home page form, goes to that scan's page, and runs the
+ * scan in the background. A link scanned in the last few minutes goes to that scan
+ * instead, without counting as a new one.
  */
 export async function startScan(
   _previous: StartScanState,
@@ -48,23 +44,27 @@ export async function startScan(
 
   const parsed = parseScanUrl(String(form.get('url') ?? ''));
   if (!parsed.ok) return { message: parsed.message };
+  const url = parsed.url;
 
   let destination: string;
   try {
-    const recent = await findRecentScan(parsed.url, RECENT_SCAN_MINUTES);
+    const recent = await findRecentScan(url, RECENT_SCAN_MINUTES);
     if (recent) {
       destination = `/scan/${recent}?recent`;
     } else {
       const visitor = visitorKey(visitorIp(await headers()));
       const refusal = scanRefusal({
         byVisitorLastHour: await countRecentScansBy(visitor, 60),
-        queued: await countQueuedScans(),
+        active: await countActiveScans(),
       });
       if (refusal) return { message: refusal };
-      destination = `/scan/${await createScan(parsed.url, visitor)}`;
+      const id = await createScan(url, visitor);
+      // Runs after the visitor has been sent to the scan page.
+      after(() => runQueuedScan(id, url));
+      destination = `/scan/${id}`;
     }
   } catch (error) {
-    console.error('Could not queue a scan:', describe(error));
+    console.error('Could not queue a scan:', describeError(error));
     return { message: COULD_NOT_START };
   }
   // Outside the try: redirect works by throwing, and that must not be caught.

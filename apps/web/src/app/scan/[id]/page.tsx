@@ -1,4 +1,4 @@
-import { deletionDate, getScan, scansAhead } from '@soundcheck/db';
+import { deletionDate, failIfStuck, getScan } from '@soundcheck/db';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -7,6 +7,9 @@ import { AutoRefresh } from '@/components/auto-refresh';
 import { Report } from '@/components/report';
 import { ScanProgress } from '@/components/scan-progress';
 import { RECENT_SCAN_MINUTES } from '@/server/limits';
+
+/** Well past the 3-minute scan limit, so only a scan that was cut off gets here. */
+const STUCK_AFTER_MINUTES = 10;
 
 export const metadata: Metadata = {
   title: 'Scan | Soundcheck',
@@ -25,8 +28,15 @@ export default async function ScanPage({
   await connection();
   const { id } = await params;
   const { recent } = await searchParams;
-  const scan = await getScan(id);
+  let scan = await getScan(id);
   if (!scan) notFound();
+
+  // A scan cut off by the host's time limit never marks itself finished. Fail it here so
+  // its page doesn't say "running" forever.
+  const unfinished = scan.status === 'queued' || scan.status === 'running';
+  if (unfinished && (await failIfStuck(id, STUCK_AFTER_MINUTES))) {
+    scan = (await getScan(id)) ?? scan;
+  }
 
   const recentNotice = recent !== undefined && (
     <p className="notice">
@@ -67,7 +77,7 @@ export default async function ScanPage({
   return (
     <main className="report">
       {recentNotice}
-      <ScanProgress scan={scan} ahead={await scansAhead(scan)} />
+      <ScanProgress scan={scan} />
       <AutoRefresh />
     </main>
   );

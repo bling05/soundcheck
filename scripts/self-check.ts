@@ -5,8 +5,7 @@
  * Start the production site first (`npm run build`, then `npm run start --workspace=@soundcheck/web`),
  * then run `npm run self-check`. CI does both on every pull request.
  */
-import { checks } from '@soundcheck/checks';
-import { runScan } from '../apps/worker/src/run-scan';
+import { checks, runScan } from '@soundcheck/checks';
 import { testFetchFor } from '../packages/checks/request-guard/test-fetch';
 
 const url = process.argv[2] ?? 'http://127.0.0.1:3000/';
