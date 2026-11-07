@@ -322,6 +322,11 @@ a {
   vertical-align: top;
 }
 
+.report tr:first-child > th,
+.report tr:first-child > td {
+  border-top: 0;
+}
+
 .report th {
   width: 30%;
   font-weight: 600;

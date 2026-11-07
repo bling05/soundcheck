@@ -45,7 +45,7 @@ function plural(count: number, one: string, many: string): string {
 
 function headlineFor(findings: number, checksRan: number): string {
   if (findings > 0) {
-    return `We found ${plural(findings, 'thing', 'things')} to fix.`;
+    return 'Here are the vulnerabilities we found.';
   }
   if (checksRan > 0) {
     return `We didn't find any problems in the ${plural(checksRan, 'check', 'checks')} we ran. That doesn't mean your site is fully secure, so see what we didn't check below.`;

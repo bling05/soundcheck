@@ -126,18 +126,12 @@ export function Report({ report }: { report: ScanReport }) {
         </p>
       </header>
 
-      <p className="summary">
-        {summary.headline}
-        {summary.findings.length > 1 && ' The most serious is first.'}
-      </p>
+      <p className="summary">{summary.headline}</p>
 
       {summary.findings.length > 0 && (
         <section>
-          {summary.findings.map((finding, index) => (
-            <FindingBlock
-              finding={finding}
-              key={`${finding.checkId}-${index}`}
-            />
+          {summary.findings.map((finding) => (
+            <FindingBlock finding={finding} key={finding.id} />
           ))}
         </section>
       )}
@@ -158,11 +152,7 @@ export function Report({ report }: { report: ScanReport }) {
       )}
 
       <section>
-        <h2>Not checked</h2>
-        <p>
-          These aren&apos;t passes. We didn&apos;t test them, so they could
-          still have problems.
-        </p>
+        <h2>Some things we couldn&apos;t check</h2>
         <table>
           <tbody>
             {summary.notChecked.map(({ title, reason }) => (
@@ -173,10 +163,7 @@ export function Report({ report }: { report: ScanReport }) {
             ))}
           </tbody>
         </table>
-        <p>
-          This scan is not a pentest. It looks for common problems using fixed
-          rules, and a person testing your app could find things it can&apos;t.
-        </p>
+        <p>This scan is deterministic and does not use an LLM.</p>
       </section>
     </>
   );

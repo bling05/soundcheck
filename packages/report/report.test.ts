@@ -67,7 +67,7 @@ describe('summarizeReport', () => {
       'critical one',
       'low one',
     ]);
-    expect(summary.headline).toBe('We found 2 things to fix.');
+    expect(summary.headline).toBe('Here are the vulnerabilities we found.');
   });
 
   it('builds one fix prompt from every finding, worst first', () => {
@@ -101,7 +101,7 @@ describe('summarizeReport', () => {
   it('uses the singular for one finding', () => {
     const summary = summarizeReport(report([ran('A', [finding('x', 'low')])]));
 
-    expect(summary.headline).toBe('We found 1 thing to fix.');
+    expect(summary.headline).toBe('Here are the vulnerabilities we found.');
   });
 
   it('never shows a skipped check as having no problems', () => {

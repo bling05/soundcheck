@@ -7,7 +7,7 @@ describe('sample report', () => {
     const summary = summarizeReport(SAMPLE_REPORT);
 
     expect(summary.findings[0]?.severity).toBe('critical');
-    expect(summary.headline).toBe('We found 3 things to fix.');
+    expect(summary.headline).toBe('Here are the vulnerabilities we found.');
   });
 
   it('has one fix prompt covering all of its findings', () => {
