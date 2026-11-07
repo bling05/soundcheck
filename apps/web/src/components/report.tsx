@@ -1,5 +1,4 @@
 import {
-  describeStack,
   LESSONS,
   summarizeReport,
   type Evidence,
@@ -120,12 +119,7 @@ export function Report({ report }: { report: ScanReport }) {
     <>
       <header>
         <h1>{new URL(report.url).hostname}</h1>
-        <p className="muted">
-          Scanned {scanned}.
-          {report.stack &&
-            report.stack.length > 0 &&
-            ` Looks like it's built with ${describeStack(report.stack)}.`}
-        </p>
+        <p className="muted">Scanned {scanned}.</p>
       </header>
 
       <p className="summary">{summary.headline}</p>

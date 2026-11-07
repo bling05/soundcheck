@@ -1,5 +1,6 @@
 export { isPublicAddress } from './address-policy';
 export { guardedFetch } from './guarded-fetch';
+export { withRequestCache } from './request-cache';
 export type {
   GuardedFetch,
   GuardedFetchOptions,

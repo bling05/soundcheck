@@ -23,3 +23,9 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      # Soundcheck must pass its own checks. Scan the production build it just made.
+      - name: Self-check
+        run: |
+          npm run start --workspace=@soundcheck/web -- -p 3000 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:3000/ && break; sleep 1; done
+          npm run self-check -- http://127.0.0.1:3000/

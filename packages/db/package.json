@@ -1,0 +1,21 @@
+{
+  "name": "@soundcheck/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "scripts": {
+    "migrate": "tsx --env-file-if-exists=../../.env migrate.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.15"
+  },
+  "dependencies": {
+    "pg": "^8.23.1",
+    "@soundcheck/report": "*"
+  }
+}

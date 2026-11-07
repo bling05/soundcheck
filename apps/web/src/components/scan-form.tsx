@@ -1,30 +1,34 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useActionState } from 'react';
+import { startScan, type StartScanState } from '@/app/actions';
 
-/** The home page's scan box. Scanning isn't built yet, so submitting only says so. */
+/** The home page's scan box. Submitting queues a scan and goes to its page. */
 export function ScanForm() {
-  const [submitted, setSubmitted] = useState(false);
-
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSubmitted(true);
-  }
+  const [state, action, pending] = useActionState<StartScanState, FormData>(
+    startScan,
+    {},
+  );
 
   return (
-    <form className="scan-form" onSubmit={submit}>
+    <form className="scan-form" action={action}>
       <label htmlFor="scan-url">Your app&apos;s link</label>
       <div className="scan-row">
+        {/* Text, not url, so the browser doesn't reject a link typed without https://. */}
         <input
           id="scan-url"
           name="url"
-          type="url"
+          type="text"
           inputMode="url"
           placeholder="https://your-app.com"
           autoComplete="url"
+          autoCapitalize="none"
+          spellCheck={false}
           required
         />
-        <button type="submit">Scan</button>
+        <button type="submit" disabled={pending}>
+          {pending ? 'Starting…' : 'Scan'}
+        </button>
       </div>
       <details>
         <summary>Also scan a GitHub repo</summary>
@@ -32,13 +36,15 @@ export function ScanForm() {
         <input
           id="scan-repo"
           name="repo"
-          type="url"
+          type="text"
           inputMode="url"
           placeholder="https://github.com/you/your-app"
+          autoCapitalize="none"
+          spellCheck={false}
         />
       </details>
       <p className="scan-status" aria-live="polite">
-        {submitted && "Scanning isn't ready yet."}
+        {state.message}
       </p>
     </form>
   );

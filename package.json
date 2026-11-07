@@ -12,7 +12,9 @@
   "scripts": {
     "dev": "npm run dev --workspace=@soundcheck/web",
     "dev:worker": "npm run dev --workspace=@soundcheck/worker",
+    "db:migrate": "npm run migrate --workspace=@soundcheck/db",
     "build": "npm run build --workspace=@soundcheck/web",
+    "self-check": "tsx scripts/self-check.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "npm run typecheck --workspaces",
