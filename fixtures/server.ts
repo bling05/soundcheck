@@ -7,7 +7,11 @@ export interface FixtureResponse {
   body?: string;
 }
 
-/** A fake website: each path maps to the response it should send. Other paths get a 404. */
+/**
+ * A fake website: each path maps to the response it should send. Other paths get the `*`
+ * response if there is one, like sites that answer every address with their home page,
+ * and a 404 otherwise.
+ */
 export type FixtureSite = Record<string, FixtureResponse>;
 
 export interface RunningFixture {
@@ -20,7 +24,7 @@ export interface RunningFixture {
 export async function startFixture(site: FixtureSite): Promise<RunningFixture> {
   const server = http.createServer((request, response) => {
     const path = new URL(request.url ?? '/', 'http://fixture').pathname;
-    const page = site[path] ?? { status: 404, body: 'Not found' };
+    const page = site[path] ?? site['*'] ?? { status: 404, body: 'Not found' };
 
     response.writeHead(page.status ?? 200, page.headers);
     response.end(page.body ?? '');

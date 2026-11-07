@@ -1,5 +1,6 @@
 import type { Lesson } from '../types';
 import { BUNDLE_SECRETS_LESSONS } from './bundle-secrets';
+import { LEFTOVER_FILES_LESSONS } from './leftover-files';
 import { SECURITY_HEADERS_LESSONS } from './security-headers';
 
 /**
@@ -9,6 +10,7 @@ import { SECURITY_HEADERS_LESSONS } from './security-headers';
 export const LESSONS = {
   ...SECURITY_HEADERS_LESSONS,
   ...BUNDLE_SECRETS_LESSONS,
+  ...LEFTOVER_FILES_LESSONS,
 } satisfies Record<string, Lesson>;
 
 export type LessonId = keyof typeof LESSONS;
