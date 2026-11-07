@@ -1,21 +1,6 @@
-import type { Lesson, ScanReport } from '@soundcheck/report';
+import type { ScanReport } from '@soundcheck/report';
 
 const URL_SCANNED = 'https://example-app.test/';
-const OWASP = ['A05:2021 Security Misconfiguration'];
-const WHY_HEADERS =
-  'AI tools build what you ask for, and nobody asks for this. The app works fine without it, so nothing prompts the tool to add it.';
-
-const supabaseLesson: Lesson = {
-  whatItIs:
-    'Supabase has two kinds of key. The anon key is meant to be public, and your security rules limit what it can do. The secret key, also called service role, skips those rules completely.',
-  whyAiToolsProduceIt:
-    "AI tools often connect a service the quickest way, by calling it straight from the browser. That works right away, but anything browser code uses gets sent to every visitor. Names starting with NEXT_PUBLIC_ or VITE_ do this too: they're copied into your public code.",
-  howItIsExploited:
-    'Anyone can open your site, read its code, and copy this key. With it they can read, change, or delete everything in your database, including all your users’ data.',
-  owasp: ['A02:2021 Cryptographic Failures', ...OWASP],
-  cwe: ['CWE-200', 'CWE-798'],
-};
-
 /** Made-up results, so the report can be reviewed before the scan flow exists. */
 export const SAMPLE_REPORT: ScanReport = {
   url: URL_SCANNED,
@@ -43,15 +28,7 @@ export const SAMPLE_REPORT: ScanReport = {
                 'Neither this header nor a frame-ancestors rule was in the response.',
             },
           ],
-          lesson: {
-            whatItIs:
-              'X-Frame-Options tells browsers whether other websites can show your site inside a frame on their own page.',
-            whyAiToolsProduceIt: WHY_HEADERS,
-            howItIsExploited:
-              'An attacker puts your site in an invisible frame on top of their own page. A visitor thinks they are clicking a harmless button, but they are really clicking something on your site while logged in, like "delete account." This is called clickjacking.',
-            owasp: OWASP,
-            cwe: ['CWE-1021'],
-          },
+          lessonId: 'security-headers:frame-protection',
           manualFix: {
             description:
               'Add this header in your hosting or framework settings. If your own site needs to embed its pages, use SAMEORIGIN instead of DENY.',
@@ -78,15 +55,7 @@ export const SAMPLE_REPORT: ScanReport = {
               detail: 'This header was not in the response.',
             },
           ],
-          lesson: {
-            whatItIs:
-              'Content-Security-Policy is a list you give the browser of where scripts are allowed to come from. Anything not on the list gets blocked.',
-            whyAiToolsProduceIt: WHY_HEADERS,
-            howItIsExploited:
-              'If an attacker slips a script into your page, for example through a comment box, it runs as if it were yours and can act as whoever is logged in. This list is your backup: it can stop that script even when the original bug gets through.',
-            owasp: OWASP,
-            cwe: ['CWE-693'],
-          },
+          lessonId: 'security-headers:content-security-policy',
           manualFix: {
             description:
               'Add this header in your hosting or framework settings. Start in report-only mode, because a strict list can break your site if it leaves out a service you use, like your database or analytics. Add those services to the list, and once the browser console shows no warnings, rename the header to Content-Security-Policy.',
@@ -122,7 +91,7 @@ export const SAMPLE_REPORT: ScanReport = {
               detail: 'Found a key ending in ****9f3a in this file.',
             },
           ],
-          lesson: supabaseLesson,
+          lessonId: 'bundle-secrets:supabase-secret',
           manualFix: {
             description:
               "Do these in order. 1. Search your code and hosting settings for everywhere this key is used, so you know what will need the new one. 2. Create a new key in your Supabase project settings. 3. Move all Supabase secret key calls to code that only runs on your server, and give it the new key through a private environment variable. 4. Delete the old key. Removing it from your code isn't enough, because anyone who already copied it can still use it until it's deleted.",

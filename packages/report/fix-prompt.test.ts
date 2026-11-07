@@ -10,13 +10,7 @@ function finding(problem: string, request: string): Finding {
     severity: 'low',
     source: 'live',
     evidence: [],
-    lesson: {
-      whatItIs: '',
-      whyAiToolsProduceIt: '',
-      howItIsExploited: '',
-      owasp: [],
-      cwe: [],
-    },
+    lessonId: 'security-headers:frame-protection',
     manualFix: { description: '', language: 'text', snippet: '' },
     aiFix: { problem, request },
   };

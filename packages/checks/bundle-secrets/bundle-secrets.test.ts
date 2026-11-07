@@ -1,3 +1,4 @@
+import { LESSONS } from '@soundcheck/report';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   FAKE_KEYS,
@@ -292,11 +293,9 @@ describe('finding contents', () => {
 
   it('has everything a finding needs', async () => {
     for (const finding of await findingsFor(leakyContext())) {
-      expect(finding.lesson.whatItIs).not.toBe('');
-      expect(finding.lesson.whyAiToolsProduceIt).not.toBe('');
-      expect(finding.lesson.howItIsExploited).not.toBe('');
-      expect(finding.lesson.owasp.length).toBeGreaterThan(0);
-      expect(finding.lesson.cwe.length).toBeGreaterThan(0);
+      // Every finding of one kind shares a lesson named after its check and rule.
+      expect(finding.id.startsWith(`${finding.lessonId}:`)).toBe(true);
+      expect(LESSONS[finding.lessonId]).toBeDefined();
       expect(finding.manualFix.snippet).not.toBe('');
     }
   });

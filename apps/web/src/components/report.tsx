@@ -1,5 +1,6 @@
 import {
   describeStack,
+  LESSONS,
   summarizeReport,
   type Evidence,
   type Finding,
@@ -26,7 +27,8 @@ function capitalize(text: string): string {
 }
 
 function FindingBlock({ finding }: { finding: Finding }) {
-  const { lesson, manualFix, evidence } = finding;
+  const { manualFix, evidence } = finding;
+  const lesson = LESSONS[finding.lessonId];
   const [firstEvidence] = evidence;
   const severity = capitalize(finding.severity);
   return (

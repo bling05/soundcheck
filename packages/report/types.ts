@@ -1,3 +1,4 @@
+import type { LessonId } from './lessons';
 import type { Severity } from './severity';
 
 /** Where a finding was seen. `both` means a code finding was confirmed live ("Confirmed exploitable"). */
@@ -42,7 +43,8 @@ export interface Finding {
   severity: Severity;
   source: SourceTag;
   evidence: Evidence[];
-  lesson: Lesson;
+  /** Which entry in `LESSONS` explains this problem. Shared by every finding of the same kind. */
+  lessonId: LessonId;
   manualFix: ManualFix;
   /** Something urgent to do before the fix, like replacing a leaked key. */
   safetyStep?: string;

@@ -11,13 +11,7 @@ function finding(title: string, severity: Severity): Finding {
     severity,
     source: 'live',
     evidence: [],
-    lesson: {
-      whatItIs: '',
-      whyAiToolsProduceIt: '',
-      howItIsExploited: '',
-      owasp: [],
-      cwe: [],
-    },
+    lessonId: 'security-headers:frame-protection',
     manualFix: { description: '', language: 'text', snippet: '' },
     aiFix: { problem: title, request: `Fix ${title}.` },
   };

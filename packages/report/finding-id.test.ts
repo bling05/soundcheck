@@ -16,13 +16,7 @@ function finding(
     severity,
     source: 'live',
     evidence: [],
-    lesson: {
-      whatItIs: '',
-      whyAiToolsProduceIt: '',
-      howItIsExploited: '',
-      owasp: [],
-      cwe: [],
-    },
+    lessonId: 'security-headers:frame-protection',
     manualFix: { description: '', language: 'text', snippet: '' },
     aiFix: { problem: id, request: '' },
   };

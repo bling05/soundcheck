@@ -42,8 +42,7 @@ async function run(context: CheckContext): Promise<CheckResult> {
   const page = new URL(url).pathname;
   const findings = findProblems(response.headers, response.body.toString()).map(
     ({ rule, header, detail }): Finding => {
-      const { title, severity, lesson, manualFix, fixRequest } =
-        RULE_CONTENT[rule];
+      const { title, severity, manualFix, fixRequest } = RULE_CONTENT[rule];
       return {
         id: findingId(CHECK_ID, rule, page),
         checkId: CHECK_ID,
@@ -51,7 +50,7 @@ async function run(context: CheckContext): Promise<CheckResult> {
         severity,
         source: 'live',
         evidence: [{ kind: 'header', url, header, detail }],
-        lesson,
+        lessonId: `${CHECK_ID}:${rule}`,
         manualFix: {
           ...manualFix,
           description: `${whereToAddHeader(context.technologies)} ${manualFix.description}`,

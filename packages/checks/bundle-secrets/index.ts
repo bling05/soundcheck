@@ -1,4 +1,4 @@
-import { findingId, withUniqueIds } from '@soundcheck/report';
+import { findingId, withUniqueIds, type Finding } from '@soundcheck/report';
 import { readSite } from '../site-files';
 import type { Check, CheckContext, CheckResult } from '../types';
 import { RULE_CONTENT } from './content';
@@ -37,23 +37,22 @@ async function run(context: CheckContext): Promise<CheckResult> {
     return { status: 'skipped', reason: PARTIAL_READ };
   }
 
-  const found = leaks.map(({ rule, redacted, locations }) => {
-    const { title, severity, lesson, manualFix, fixRequest } =
-      RULE_CONTENT[rule];
+  const found = leaks.map(({ rule, redacted, locations }): Finding => {
+    const { title, severity, manualFix, fixRequest } = RULE_CONTENT[rule];
     return {
       // The redacted key, so the same leaked key keeps its id until it's replaced.
       id: findingId(CHECK_ID, rule, redacted),
       checkId: CHECK_ID,
       title,
       severity,
-      source: 'live' as const,
+      source: 'live',
       safetyStep: REPLACE_KEY_FIRST,
       evidence: locations.slice(0, MAX_EVIDENCE_FILES).map((url) => ({
-        kind: 'url' as const,
+        kind: 'url',
         url,
         detail: `Found a key ending in ${redacted} in this file.`,
       })),
-      lesson,
+      lessonId: `${CHECK_ID}:${rule}`,
       manualFix,
       aiFix: {
         problem: `${title}. The key ends in ${redacted}`,

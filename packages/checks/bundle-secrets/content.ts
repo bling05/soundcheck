@@ -1,22 +1,10 @@
 import type { Finding, ManualFix } from '@soundcheck/report';
 import type { SecretRuleId } from './rules';
 
-type RuleContent = Pick<
-  Finding,
-  'title' | 'severity' | 'lesson' | 'manualFix'
-> & {
+type RuleContent = Pick<Finding, 'title' | 'severity' | 'manualFix'> & {
   /** What to ask an AI tool to change. */
   fixRequest: string;
 };
-
-const OWASP = [
-  'A02:2021 Cryptographic Failures',
-  'A05:2021 Security Misconfiguration',
-];
-const CWE = ['CWE-200', 'CWE-798'];
-
-const WHY_AI_TOOLS_PRODUCE_IT =
-  "AI tools often connect a service the quickest way, by calling it straight from the browser. That works right away, but anything browser code uses gets sent to every visitor. Names starting with NEXT_PUBLIC_ or VITE_ do this too: they're copied into your public code.";
 
 function serverOnlyFix(
   service: string,
@@ -41,15 +29,6 @@ export const RULE_CONTENT: Record<SecretRuleId, RuleContent> = {
   'supabase-secret': {
     title: "Your Supabase secret key is in your site's public code",
     severity: 'critical',
-    lesson: {
-      whatItIs:
-        'Supabase has two kinds of key. The anon key is meant to be public, and your security rules limit what it can do. The secret key, also called service role, skips those rules completely.',
-      whyAiToolsProduceIt: WHY_AI_TOOLS_PRODUCE_IT,
-      howItIsExploited:
-        'Anyone can open your site, read its code, and copy this key. With it they can read, change, or delete everything in your database, including all your users’ data.',
-      owasp: OWASP,
-      cwe: CWE,
-    },
     manualFix: serverOnlyFix(
       'Supabase secret key',
       'SUPABASE_SECRET_KEY',
@@ -60,15 +39,6 @@ export const RULE_CONTENT: Record<SecretRuleId, RuleContent> = {
   'stripe-secret': {
     title: "Your Stripe secret key is in your site's public code",
     severity: 'critical',
-    lesson: {
-      whatItIs:
-        'A Stripe secret key lets a program act as your business on Stripe. It is different from your publishable key, which starts with pk_ and is meant to be public.',
-      whyAiToolsProduceIt: WHY_AI_TOOLS_PRODUCE_IT,
-      howItIsExploited:
-        'Anyone who copies this key from your site may be able to see your customers and payments, or issue refunds, depending on what the key is allowed to do.',
-      owasp: OWASP,
-      cwe: CWE,
-    },
     manualFix: serverOnlyFix(
       'Stripe',
       'STRIPE_SECRET_KEY',
@@ -79,15 +49,6 @@ export const RULE_CONTENT: Record<SecretRuleId, RuleContent> = {
   'private-key': {
     title: "A private key is in your site's public code",
     severity: 'critical',
-    lesson: {
-      whatItIs:
-        'A private key proves that a request really comes from you. Firebase and Google service accounts use one, and it often gives full access to a whole project.',
-      whyAiToolsProduceIt: WHY_AI_TOOLS_PRODUCE_IT,
-      howItIsExploited:
-        'Anyone who copies this key from your site can act as you. For a Firebase service account, that can mean reading and changing all of your data, skipping your security rules.',
-      owasp: OWASP,
-      cwe: ['CWE-200', 'CWE-321'],
-    },
     manualFix: serverOnlyFix(
       'code that uses this private key,',
       'SERVICE_ACCOUNT_KEY',
@@ -98,15 +59,6 @@ export const RULE_CONTENT: Record<SecretRuleId, RuleContent> = {
   'openai-key': {
     title: "Your OpenAI API key is in your site's public code",
     severity: 'high',
-    lesson: {
-      whatItIs:
-        'An OpenAI API key lets a program use OpenAI and bills the usage to your account.',
-      whyAiToolsProduceIt: WHY_AI_TOOLS_PRODUCE_IT,
-      howItIsExploited:
-        'Anyone who copies this key from your site can run requests on your account, and you get the bill. Leaked AI keys are a common target because they can be turned into money quickly.',
-      owasp: OWASP,
-      cwe: CWE,
-    },
     manualFix: serverOnlyFix(
       'OpenAI',
       'OPENAI_API_KEY',
@@ -117,15 +69,6 @@ export const RULE_CONTENT: Record<SecretRuleId, RuleContent> = {
   'anthropic-key': {
     title: "Your Anthropic API key is in your site's public code",
     severity: 'high',
-    lesson: {
-      whatItIs:
-        'An Anthropic API key lets a program use Claude and bills the usage to your account.',
-      whyAiToolsProduceIt: WHY_AI_TOOLS_PRODUCE_IT,
-      howItIsExploited:
-        'Anyone who copies this key from your site can run requests on your account, and you get the bill. Leaked AI keys are a common target because they can be turned into money quickly.',
-      owasp: OWASP,
-      cwe: CWE,
-    },
     manualFix: serverOnlyFix(
       'Anthropic',
       'ANTHROPIC_API_KEY',
@@ -136,15 +79,6 @@ export const RULE_CONTENT: Record<SecretRuleId, RuleContent> = {
   'aws-key': {
     title: "An AWS key ID is in your site's public code",
     severity: 'high',
-    lesson: {
-      whatItIs:
-        'This is the ID half of an AWS access key. It needs a matching secret to work, and that secret is often stored right next to it, though we only looked for the ID.',
-      whyAiToolsProduceIt: WHY_AI_TOOLS_PRODUCE_IT,
-      howItIsExploited:
-        'If the matching secret is in your code too, anyone who copies them can use your AWS account with whatever access the key has, which can include your files, your data, and your bill.',
-      owasp: OWASP,
-      cwe: CWE,
-    },
     manualFix: serverOnlyFix(
       'AWS',
       'AWS_SECRET_ACCESS_KEY',

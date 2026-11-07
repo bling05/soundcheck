@@ -1,4 +1,4 @@
-import type { Finding } from '@soundcheck/report';
+import { LESSONS, type Finding } from '@soundcheck/report';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   missingSecurityHeaders,
@@ -291,11 +291,9 @@ describe('finding contents', () => {
         source: 'live',
       });
       expect(finding.evidence[0]).toMatchObject({ kind: 'header' });
-      expect(finding.lesson.whatItIs).not.toBe('');
-      expect(finding.lesson.whyAiToolsProduceIt).not.toBe('');
-      expect(finding.lesson.howItIsExploited).not.toBe('');
-      expect(finding.lesson.owasp.length).toBeGreaterThan(0);
-      expect(finding.lesson.cwe.length).toBeGreaterThan(0);
+      // Every finding of one kind shares a lesson named after its check and rule.
+      expect(finding.id.startsWith(`${finding.lessonId}:`)).toBe(true);
+      expect(LESSONS[finding.lessonId]).toBeDefined();
       expect(finding.manualFix.snippet).not.toBe('');
       expect(finding.aiFix.problem).toBe(finding.title);
       expect(finding.aiFix.request).not.toBe('');
