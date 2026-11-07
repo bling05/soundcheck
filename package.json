@@ -1,6 +1,7 @@
 {
   "name": "soundcheck",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=24"

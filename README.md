@@ -49,3 +49,7 @@ The site runs on http://localhost:3000. Scans run inside the website, so there's
 - `packages/shared`: types and utilities used across the repo
 - `packages/db`: database access and migrations
 - `fixtures`: deliberately vulnerable apps used for tests
+
+## License
+
+[MIT](LICENSE)
