@@ -256,6 +256,7 @@ describe('tableKind', () => {
     ['user_messages', 'personal'],
     ['orders', 'personal'],
     ['products', 'probably-public'],
+    ['prices', 'probably-public'],
     ['blog_posts', 'unknown'],
     ['widgets', 'unknown'],
   ])('treats %s as %s', (table, kind) => {

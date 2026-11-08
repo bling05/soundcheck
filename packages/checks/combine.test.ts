@@ -109,6 +109,7 @@ describe('combineChecks', () => {
       'database-rules',
       'storage-rules',
       'nextjs-version',
+      'supabase-policies',
     ]);
   });
 

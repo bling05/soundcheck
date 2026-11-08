@@ -113,7 +113,7 @@ export type TableKind = 'personal' | 'probably-public' | 'unknown';
 const PERSONAL =
   /user|profile|account|member|customer|client|contact|email|subscriber|lead|order|payment|invoice|billing|transaction|message|chat|conversation|comment|note|address|phone|session|token|secret|password|credential|admin|employee|patient|student|booking|appointment|application|document|upload|private/i;
 const PROBABLY_PUBLIC =
-  /^(?:products?|posts?|articles?|categor(?:y|ies)|tags?|faqs?|pages?|blogs?|menus?|menu_items|items?|listings?|courses?|lessons?|events?|testimonials?|features?|plans?|pricing|announcements?)$/i;
+  /^(?:products?|posts?|articles?|categor(?:y|ies)|tags?|faqs?|pages?|blogs?|menus?|menu_items|items?|listings?|courses?|lessons?|events?|testimonials?|features?|plans?|pricing|prices?|pricing_plans|tiers?|announcements?)$/i;
 
 /**
  * A guess from the name alone, used for severity. Some tables are meant to be read by
