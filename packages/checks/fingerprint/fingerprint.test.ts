@@ -177,6 +177,21 @@ describe('fingerprintSite avoids false alarms', () => {
     expect(result).toMatchObject({ ok: true, detections: [] });
   });
 
+  it.each([
+    [
+      'a Lovable Cloud address',
+      'createClient("https://c--0a1b2c3d-prod.lovable.cloud",k)',
+    ],
+    ['a built Supabase address setting', '{VITE_SUPABASE_URL:`https://x`}'],
+  ])('Supabase from %s', async (_, code) => {
+    const result = await fingerprintSite(
+      'https://site.test/',
+      fakeVisit({ body: `<script>${code}</script>` }),
+    );
+
+    expect(result).toMatchObject({ ok: true, platforms: ['supabase'] });
+  });
+
   it('ignores a Supabase-looking address with a wrong project id', async () => {
     const result = await fingerprintSite(
       'https://site.test/',

@@ -1,3 +1,4 @@
+import { checks } from '@soundcheck/checks';
 import { deletionDate, failIfStuck, getScan } from '@soundcheck/db';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -10,6 +11,9 @@ import { RECENT_SCAN_MINUTES } from '@/server/limits';
 
 /** Well past the 3-minute scan limit, so only a scan that was cut off gets here. */
 const STUCK_AFTER_MINUTES = 10;
+
+/** Only offer verification once there's something it unlocks. */
+const HAS_OWNER_CHECKS = checks.some(({ mode }) => mode === 'url-active');
 
 export const metadata: Metadata = {
   title: 'Scan | Soundcheck',
@@ -50,6 +54,15 @@ export default async function ScanPage({
       <main className="report">
         {recentNotice}
         <Report report={scan.report} />
+        {HAS_OWNER_CHECKS && !scan.report.verified && (
+          <p>
+            Own this site?{' '}
+            <Link href={`/verify?site=${encodeURIComponent(scan.url)}`}>
+              Verify it
+            </Link>{' '}
+            to run the database checks too.
+          </p>
+        )}
         <p className="muted">
           This report will be deleted on{' '}
           {deletionDate(scan.requestedAt).toLocaleDateString('en-US', {

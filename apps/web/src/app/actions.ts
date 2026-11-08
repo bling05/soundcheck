@@ -6,6 +6,7 @@ import {
   createScan,
   findRecentScan,
 } from '@soundcheck/db';
+import { verificationCode } from '@soundcheck/checks';
 import { parseScanUrl } from '@soundcheck/shared';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -17,6 +18,7 @@ import {
   visitorKey,
 } from '@/server/limits';
 import { describeError, runQueuedScan } from '@/server/run-scan';
+import { readVerificationSecret } from '@/server/verification';
 
 export interface StartScanState {
   /** Shown under the form when the scan couldn't start. */
@@ -46,9 +48,16 @@ export async function startScan(
   if (!parsed.ok) return { message: parsed.message };
   const url = parsed.url;
 
+  // Someone holding a verification secret may own this site, so their scan can include
+  // database results. It's never reused for anyone else, and never reuses another scan.
+  const secret = await readVerificationSecret();
+  const code = secret && verificationCode(secret, new URL(url).hostname);
+
   let destination: string;
   try {
-    const recent = await findRecentScan(url, RECENT_SCAN_MINUTES);
+    const recent = code
+      ? undefined
+      : await findRecentScan(url, RECENT_SCAN_MINUTES);
     if (recent) {
       destination = `/scan/${recent}?recent`;
     } else {
@@ -58,9 +67,9 @@ export async function startScan(
         active: await countActiveScans(),
       });
       if (refusal) return { message: refusal };
-      const id = await createScan(url, visitor);
+      const id = await createScan(url, visitor, { private: Boolean(code) });
       // Runs after the visitor has been sent to the scan page.
-      after(() => runQueuedScan(id, url));
+      after(() => runQueuedScan(id, url, code));
       destination = `/scan/${id}`;
     }
   } catch (error) {

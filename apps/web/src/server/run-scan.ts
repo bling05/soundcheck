@@ -23,12 +23,17 @@ export function describeError(error: unknown): string {
  * runs. The whole scan must fit in the function's time limit (`maxDuration`), which is why
  * scans are capped at 3 minutes.
  */
-export async function runQueuedScan(id: string, url: string): Promise<void> {
+export async function runQueuedScan(
+  id: string,
+  url: string,
+  verificationCode?: string,
+): Promise<void> {
   try {
     if (!(await markRunning(id))) return;
     const result = await runScan(url, {
       fetch: guardedFetch,
       checks,
+      verificationCode,
       onPlanned: (planned) => setPlannedChecks(id, planned),
       onProgress: (report) => saveProgress(id, report),
     });

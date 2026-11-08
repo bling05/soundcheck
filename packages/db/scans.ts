@@ -59,15 +59,17 @@ export function isScanId(id: string): boolean {
 
 /**
  * Queues a scan and returns its id. The url must already be cleaned with `parseScanUrl`.
- * `requester` is a keyed hash of the visitor's IP, never the IP itself.
+ * `requester` is a keyed hash of the visitor's IP, never the IP itself. A `private` scan
+ * is never shown to anyone who didn't start it, except through its own link.
  */
 export async function createScan(
   url: string,
   requester?: string,
+  options: { private?: boolean } = {},
 ): Promise<string> {
   const { rows } = await pool().query<{ id: string }>(
-    'insert into scans (url, requester) values ($1, $2) returning id',
-    [url, requester ?? null],
+    'insert into scans (url, requester, private) values ($1, $2, $3) returning id',
+    [url, requester ?? null, options.private ?? false],
   );
   const id = rows[0]?.id;
   if (!id) throw new Error('The database did not return a scan id.');
@@ -85,14 +87,17 @@ export async function getScan(id: string): Promise<Scan | undefined> {
 
 // ---- Limits, used by the website before queueing a scan ----
 
-/** A scan of this exact link from the last few minutes that didn't fail, newest first. */
+/**
+ * A scan of this exact link from the last few minutes that didn't fail, newest first.
+ * Private scans are never reused: they can hold an owner's database results.
+ */
 export async function findRecentScan(
   url: string,
   withinMinutes: number,
 ): Promise<string | undefined> {
   const { rows } = await pool().query<{ id: string }>(
     `select id from scans
-     where url = $1 and status <> 'failed'
+     where url = $1 and status <> 'failed' and not private
        and requested_at > now() - make_interval(mins => $2)
      order by requested_at desc limit 1`,
     [url, withinMinutes],

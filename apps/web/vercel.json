@@ -1,5 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd ../.. && npm ci",
-  "crons": [{ "path": "/api/cron/cleanup", "schedule": "0 9 * * *" }]
+  "buildCommand": "cd ../.. && npm run migrate --workspace=@soundcheck/db -- --vercel-production-only && npm run build --workspace=@soundcheck/web",
+  "crons": [
+    {
+      "path": "/api/cron/cleanup",
+      "schedule": "0 9 * * *"
+    }
+  ]
 }

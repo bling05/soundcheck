@@ -2,6 +2,7 @@ import type { CheckOutcome, ScanReport } from '@soundcheck/report';
 import { fingerprintSite, type Technology } from './fingerprint';
 import { withRequestCache, type GuardedFetch } from './request-guard';
 import type { Check, CheckResult } from './types';
+import { checkVerification } from './verification';
 
 /** A check a scan will run, so a progress page can list it before it finishes. */
 export interface PlannedCheck {
@@ -14,13 +15,22 @@ export const CHECK_TIME_LIMIT_MS = 60_000;
 /** Longest a whole scan may take. Checks that haven't started by then are skipped. */
 export const SCAN_TIME_LIMIT_MS = 3 * 60_000;
 
+const DATABASE_RULES = {
+  title: 'Database and storage rules',
+  reason:
+    'Testing these goes further than reading public files, so it needs proof that you own this site. Verify your site to unlock these checks.',
+};
+
+/** Says why verifying matters on a Supabase site, without revealing anything about it. */
+const SUPABASE_TABLES = {
+  title: 'Supabase tables anyone can read',
+  reason:
+    "This site uses Supabase. The most common serious problem in Supabase apps is tables anyone can read, which has leaked real users' data. Checking needs proof that you own this site, so verify it to check yours.",
+};
+
 /** Kinds of checks a URL scan never tries. Shown in every report's "couldn't check" list. */
 export const NOT_ATTEMPTED: ScanReport['notAttempted'] = [
-  {
-    title: 'Database and storage rules',
-    reason:
-      "Testing these goes further than reading public files, so it needs proof that you own this domain. Domain verification isn't available yet.",
-  },
+  DATABASE_RULES,
   {
     title: 'Your code',
     reason:
@@ -40,6 +50,11 @@ const OUT_OF_TIME = 'The scan ran out of time before this check could run.';
 export interface RunScanOptions {
   fetch: GuardedFetch;
   checks: readonly Check[];
+  /**
+   * The site's verification code, if the person scanning holds the secret behind it. When
+   * the site shows this code, checks that need proof of ownership run too.
+   */
+  verificationCode?: string;
   /** Called once with the checks that will run, before the first one starts. */
   onPlanned?: (checks: PlannedCheck[]) => Promise<void>;
   /** Called with the report so far after each check finishes. */
@@ -75,9 +90,14 @@ async function withTimeLimit<T>(
   }
 }
 
-/** URL scans run passive checks only. Active checks need domain verification first. */
-function appliesTo(check: Check, platforms: readonly string[]): boolean {
-  if (check.mode !== 'url-passive') return false;
+/** URL scans run passive checks, plus active ones once the site is verified. */
+function appliesTo(
+  check: Check,
+  platforms: readonly string[],
+  verified: boolean,
+): boolean {
+  if (check.mode === 'repo') return false;
+  if (check.mode === 'url-active' && !verified) return false;
   return (
     check.platforms === 'all' ||
     check.platforms.some((platform) => platforms.includes(platform))
@@ -110,8 +130,13 @@ export async function runScan(
   const stack: Technology[] = [
     ...new Set(fingerprint.detections.map(({ technology }) => technology)),
   ];
+  // Checked again on every scan, so taking the code off the site ends verification.
+  const verified =
+    options.verificationCode !== undefined &&
+    (await checkVerification(url, options.verificationCode, fetch)).verified;
+
   const checks = options.checks.filter((check) =>
-    appliesTo(check, fingerprint.platforms),
+    appliesTo(check, fingerprint.platforms, verified),
   );
   await options.onPlanned?.(checks.map(({ id, title }) => ({ id, title })));
 
@@ -120,8 +145,13 @@ export async function runScan(
     scannedAt: new Date(now()).toISOString(),
     ...(fingerprint.tool && { tool: fingerprint.tool }),
     ...(stack.length > 0 && { stack }),
+    verified,
     outcomes: [],
-    notAttempted: NOT_ATTEMPTED,
+    notAttempted: verified
+      ? NOT_ATTEMPTED.filter((item) => item !== DATABASE_RULES)
+      : fingerprint.platforms.includes('supabase')
+        ? [SUPABASE_TABLES, ...NOT_ATTEMPTED]
+        : NOT_ATTEMPTED,
   };
 
   for (const check of checks) {

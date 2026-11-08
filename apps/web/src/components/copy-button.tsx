@@ -4,13 +4,20 @@ import { useState } from 'react';
 
 type CopyState = 'idle' | 'copied' | 'failed';
 
-const LABELS: Record<CopyState, string> = {
-  idle: 'Copy fix prompt',
-  copied: 'Copied',
-  failed: "Couldn't copy. Open the prompt below to copy it by hand.",
-};
-
-export function CopyButton({ text }: { text: string }) {
+export function CopyButton({
+  text,
+  label = 'Copy fix prompt',
+  failedLabel = "Couldn't copy. Open the prompt below to copy it by hand.",
+}: {
+  text: string;
+  label?: string;
+  failedLabel?: string;
+}) {
+  const labels: Record<CopyState, string> = {
+    idle: label,
+    copied: 'Copied',
+    failed: failedLabel,
+  };
   const [state, setState] = useState<CopyState>('idle');
 
   async function copy() {
@@ -24,7 +31,7 @@ export function CopyButton({ text }: { text: string }) {
 
   return (
     <button type="button" onClick={copy} aria-live="polite">
-      {LABELS[state]}
+      {labels[state]}
     </button>
   );
 }

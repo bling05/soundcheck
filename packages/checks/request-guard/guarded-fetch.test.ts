@@ -3,6 +3,7 @@ import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { isPublicAddress } from './address-policy';
 import {
+  DisallowedHeaderError,
   fetchWithPolicy,
   guardedFetch,
   type GuardPolicy,
@@ -353,5 +354,74 @@ describe('failures', () => {
     await new Promise<void>((resolve) =>
       server.listen(0, '127.0.0.1', resolve),
     );
+  });
+});
+
+describe('extra headers', () => {
+  it('sends allowed headers', async () => {
+    await fetchWithPolicy(
+      `http://127.0.0.1:${port}/`,
+      { headers: { apikey: 'public-key', Prefer: 'count=exact' } },
+      testPolicy(),
+    );
+
+    expect(requests[0]?.headers).toMatchObject({
+      apikey: 'public-key',
+      prefer: 'count=exact',
+    });
+  });
+
+  it.each(['accept-encoding', 'host', 'cookie', 'user-agent'])(
+    'refuses to send %s, which could undo the guard',
+    async (name) => {
+      await expect(
+        fetchWithPolicy(
+          `http://127.0.0.1:${port}/`,
+          { headers: { [name]: 'x' } },
+          testPolicy(),
+        ),
+      ).rejects.toThrow(DisallowedHeaderError);
+      expect(requests).toHaveLength(0);
+    },
+  );
+
+  it('keeps them on a redirect within the same host', async () => {
+    handler = (request, response) => {
+      if (request.url === '/final') return response.end('arrived');
+      response.writeHead(302, { location: '/final' });
+      response.end();
+    };
+
+    await fetchWithPolicy(
+      `http://127.0.0.1:${port}/start`,
+      { headers: { apikey: 'public-key' } },
+      testPolicy(),
+    );
+
+    expect(requests.map(({ headers }) => headers.apikey)).toEqual([
+      'public-key',
+      'public-key',
+    ]);
+  });
+
+  it('drops them on a redirect to another host, so a key never travels on', async () => {
+    handler = (request, response) => {
+      if (request.url === '/final') return response.end('arrived');
+      response.writeHead(302, {
+        location: `http://other-site.test:${port}/final`,
+      });
+      response.end();
+    };
+
+    const result = await fetchWithPolicy(
+      `http://first-site.test:${port}/start`,
+      { headers: { apikey: 'public-key', authorization: 'Bearer k' } },
+      testPolicy(),
+    );
+
+    expect(result).toMatchObject({ ok: true, status: 200 });
+    expect(requests[0]?.headers.apikey).toBe('public-key');
+    expect(requests[1]?.headers.apikey).toBeUndefined();
+    expect(requests[1]?.headers.authorization).toBeUndefined();
   });
 });

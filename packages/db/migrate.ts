@@ -43,4 +43,11 @@ async function migrate(): Promise<void> {
   await db.end();
 }
 
-await migrate();
+// On Vercel, only production deploys touch the database. Preview deploys skip this, so a
+// half-finished branch can never change the live tables.
+const productionOnly = process.argv.includes('--vercel-production-only');
+if (productionOnly && process.env.VERCEL_ENV !== 'production') {
+  console.log('Not a Vercel production deploy, so migrations were skipped.');
+} else {
+  await migrate();
+}

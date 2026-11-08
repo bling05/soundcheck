@@ -22,6 +22,20 @@ export const CLUES: readonly Clue[] = [
     pattern: /https?:\/\/[a-z0-9]{20}\.supabase\.(?:co|in)\b/,
   },
   {
+    // Lovable Cloud is Supabase behind Lovable's own address.
+    technology: 'supabase',
+    description: 'Code contains a Lovable Cloud database address',
+    searchIn: 'content',
+    pattern: /https:\/\/[a-z0-9-]+\.lovable\.cloud\b/,
+  },
+  {
+    // Build tools copy public settings into the code by name, so this is build output.
+    technology: 'supabase',
+    description: 'Code contains a Supabase address setting',
+    searchIn: 'content',
+    pattern: /\b(?:VITE|NEXT_PUBLIC|REACT_APP|EXPO_PUBLIC)_SUPABASE_URL\b/,
+  },
+  {
     technology: 'firebase',
     description: 'Site is hosted on Firebase',
     searchIn: 'host',

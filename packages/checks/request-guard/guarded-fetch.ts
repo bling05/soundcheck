@@ -16,6 +16,22 @@ export interface GuardedFetchOptions {
   timeoutMs?: number;
   /** Bodies are cut off at this size and marked `truncated`. */
   maxBytes?: number;
+  /**
+   * Extra request headers, from a fixed list (see `ALLOWED_HEADERS`). They're dropped if a
+   * redirect leads to another host, so a key sent to one site never reaches another.
+   */
+  headers?: Readonly<Record<string, string>>;
+}
+
+/**
+ * The only headers a check may add. Nothing here can turn off the guard's own protections,
+ * like the request for uncompressed responses.
+ */
+const ALLOWED_HEADERS = new Set(['apikey', 'authorization', 'prefer', 'range']);
+
+/** Thrown for a header outside `ALLOWED_HEADERS`. A bug in a check, never a site's fault. */
+export class DisallowedHeaderError extends Error {
+  override name = 'DisallowedHeaderError';
 }
 
 export type GuardFailureReason =
@@ -153,6 +169,7 @@ function sendRequest(
   maxBytes: number,
   signal: AbortSignal,
   policy: GuardPolicy,
+  extraHeaders: Readonly<Record<string, string>>,
 ): Promise<RawResponse> {
   return new Promise((resolve, reject) => {
     const transport = url.protocol === 'https:' ? https : http;
@@ -168,6 +185,7 @@ function sendRequest(
         lookup: guardedLookup(policy),
         signal,
         headers: {
+          ...extraHeaders,
           accept: '*/*',
           // Asking for no compression means a small response can't expand into a huge one.
           'accept-encoding': 'identity',
@@ -229,12 +247,22 @@ export async function fetchWithPolicy(
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
   const signal = AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
 
+  const extraHeaders: Record<string, string> = {};
+  for (const [name, value] of Object.entries(options.headers ?? {})) {
+    const key = name.toLowerCase();
+    if (!ALLOWED_HEADERS.has(key)) {
+      throw new DisallowedHeaderError(`Header not allowed: ${name}`);
+    }
+    extraHeaders[key] = value;
+  }
+
   let url: URL;
   try {
     url = new URL(target);
   } catch {
     return failure('invalid-url');
   }
+  const firstHost = url.host;
 
   // Redirects are followed by hand so every hop goes through the same checks as the first.
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
@@ -243,7 +271,15 @@ export async function fetchWithPolicy(
 
     let response: RawResponse;
     try {
-      response = await sendRequest(url, method, maxBytes, signal, policy);
+      const headers = url.host === firstHost ? extraHeaders : {};
+      response = await sendRequest(
+        url,
+        method,
+        maxBytes,
+        signal,
+        policy,
+        headers,
+      );
     } catch (error) {
       if (error instanceof BlockedAddressError)
         return failure('blocked-address');

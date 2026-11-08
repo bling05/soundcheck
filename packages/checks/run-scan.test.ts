@@ -6,6 +6,7 @@ import { checks } from './index';
 import { testFetchFor } from './request-guard/test-fetch';
 import type { Check, CheckResult } from './types';
 import { NOT_ATTEMPTED, runScan } from './run-scan';
+import { verificationCode } from './verification';
 
 let site: RunningFixture;
 
@@ -46,7 +47,7 @@ describe('runScan', () => {
     const report = reportOf(await scanFixture(checks));
 
     expect(report.outcomes.map(({ checkId }) => checkId)).toEqual(
-      checks.map(({ id }) => id),
+      checks.filter(({ mode }) => mode === 'url-passive').map(({ id }) => id),
     );
     expect(report.notAttempted).toEqual(NOT_ATTEMPTED);
     const leftovers = report.outcomes.find(
@@ -171,5 +172,98 @@ describe('runScan', () => {
     );
 
     expect(report.outcomes.map(({ checkId }) => checkId)).toEqual(['everyone']);
+  });
+});
+
+describe('runScan on a verified site', () => {
+  const CODE = verificationCode('owner-secret', '127.0.0.1');
+  const verifiedHome = {
+    body: `<!doctype html><head><meta name="soundcheck-verification" content="${CODE}"></head>`,
+  };
+  const scanChecks = [
+    fakeCheck('passive', passes),
+    fakeCheck('database', passes, { mode: 'url-active' }),
+  ];
+
+  async function scanWith(verificationCode?: string) {
+    site = await startFixture({ '/': verifiedHome });
+    return reportOf(
+      await runScan(site.url, {
+        fetch: testFetchFor(site),
+        checks: scanChecks,
+        verificationCode,
+      }),
+    );
+  }
+
+  it('runs checks that need proof of ownership when the site shows the code', async () => {
+    const report = await scanWith(CODE);
+
+    expect(report.verified).toBe(true);
+    expect(report.outcomes.map(({ checkId }) => checkId)).toEqual([
+      'passive',
+      'database',
+    ]);
+    expect(report.notAttempted.map(({ title }) => title)).not.toContain(
+      'Database and storage rules',
+    );
+  });
+
+  it('never runs them for someone without the secret behind the code', async () => {
+    const wrong = verificationCode('someone-else', '127.0.0.1');
+
+    for (const code of [undefined, wrong, CODE.slice(0, -1)]) {
+      const report = await scanWith(code);
+      await site.stop();
+
+      expect(report.verified).toBe(false);
+      expect(report.outcomes.map(({ checkId }) => checkId)).toEqual([
+        'passive',
+      ]);
+      expect(report.notAttempted).toEqual(NOT_ATTEMPTED);
+    }
+    site = await startFixture({});
+  });
+
+  it('never runs them once the code is taken off the site', async () => {
+    site = await startFixture({ '/': { body: '<!doctype html><h1>Hi</h1>' } });
+
+    const report = reportOf(
+      await runScan(site.url, {
+        fetch: testFetchFor(site),
+        checks: scanChecks,
+        verificationCode: CODE,
+      }),
+    );
+
+    expect(report.outcomes.map(({ checkId }) => checkId)).toEqual(['passive']);
+  });
+});
+
+describe('runScan on an unverified Supabase site', () => {
+  it('explains why verifying is worth it, without checking the database', async () => {
+    site = await startFixture({
+      '/': {
+        body: '<script>createClient("https://abcdefghijklmnopqrst.supabase.co", "k")</script>',
+      },
+    });
+
+    const report = reportOf(
+      await runScan(site.url, {
+        fetch: testFetchFor(site),
+        checks: [
+          fakeCheck('database', passes, {
+            mode: 'url-active',
+            platforms: ['supabase'],
+          }),
+        ],
+      }),
+    );
+
+    expect(report.outcomes).toEqual([]);
+    expect(report.notAttempted[0]).toMatchObject({
+      title: 'Supabase tables anyone can read',
+      reason: expect.stringContaining('verify it'),
+    });
   });
 });

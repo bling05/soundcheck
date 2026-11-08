@@ -15,6 +15,8 @@ export interface ScanReport {
   scannedAt: string;
   /** AI tool to tailor the fix prompt for, if one was detected. */
   tool?: AiTool;
+  /** True if the site showed its owner's verification code, so active checks could run. */
+  verified?: boolean;
   /** What fingerprinting found. Missing means no clue was found, not that it isn't used. */
   stack?: Technology[];
   outcomes: CheckOutcome[];
