@@ -16,7 +16,7 @@ function documents(count: number, more: boolean): string {
 export function collectionDetail(count: number, more: boolean): string {
   return count === 0
     ? "Your rules let anyone read this collection. It's empty right now, but anything saved there later will be readable too."
-    : `We could see ${documents(count, more)} using only the public settings in your site's code. We didn't read what's in them.`;
+    : `We could see ${documents(count, more)} using only the public settings in your site's code. We didn't read what's in ${count === 1 && !more ? 'it' : 'them'}.`;
 }
 
 export const OPEN_RULES_DETAIL =

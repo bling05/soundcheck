@@ -5,8 +5,21 @@ import { createHmac } from 'node:crypto';
  * requests, which the site would see coming from us.
  */
 
-/** Scans one visitor can start in an hour. */
-export const SCANS_PER_VISITOR_PER_HOUR = 5;
+/** Scans one visitor can start in an hour, unless the setting below changes it. */
+export const SCANS_PER_VISITOR_PER_HOUR = 15;
+/** The most the setting can raise it to, so a typo can't take the limit away. */
+export const MAX_SCANS_PER_VISITOR_PER_HOUR = 100;
+
+/**
+ * The hourly limit. Set `SCANS_PER_VISITOR_PER_HOUR` in Vercel to raise it for a while,
+ * like while testing, then delete the setting to go back to the default.
+ */
+export function scansPerVisitorPerHour(): number {
+  const setting = Number(process.env.SCANS_PER_VISITOR_PER_HOUR);
+  return Number.isInteger(setting) && setting > 0
+    ? Math.min(setting, MAX_SCANS_PER_VISITOR_PER_HOUR)
+    : SCANS_PER_VISITOR_PER_HOUR;
+}
 /** A link scanned this recently reuses that scan instead of visiting the site again. */
 export const RECENT_SCAN_MINUTES = 5;
 /** Past this many unfinished scans, new ones are refused, so Soundcheck can't be used to
@@ -18,8 +31,9 @@ export function scanRefusal(counts: {
   byVisitorLastHour: number;
   active: number;
 }): string | undefined {
-  if (counts.byVisitorLastHour >= SCANS_PER_VISITOR_PER_HOUR) {
-    return `You've started ${SCANS_PER_VISITOR_PER_HOUR} scans in the last hour, which is the limit for now. Try again a bit later.`;
+  const limit = scansPerVisitorPerHour();
+  if (counts.byVisitorLastHour >= limit) {
+    return `You've started ${limit} scans in the last hour, which is the limit for now. Try again a bit later.`;
   }
   if (counts.active >= MAX_ACTIVE_SCANS) {
     return 'Soundcheck is busy right now. Try again in a few minutes.';

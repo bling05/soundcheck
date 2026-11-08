@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   MAX_ACTIVE_SCANS,
+  MAX_SCANS_PER_VISITOR_PER_HOUR,
   SCANS_PER_VISITOR_PER_HOUR,
+  scansPerVisitorPerHour,
   scanRefusal,
   visitorIp,
   visitorKey,
@@ -30,6 +32,34 @@ describe('scanRefusal', () => {
     expect(
       scanRefusal({ byVisitorLastHour: 0, active: MAX_ACTIVE_SCANS }),
     ).toContain('busy');
+  });
+});
+
+describe('scansPerVisitorPerHour', () => {
+  it('is the default unless the setting changes it', () => {
+    expect(scansPerVisitorPerHour()).toBe(SCANS_PER_VISITOR_PER_HOUR);
+  });
+
+  it('can be raised for a while', () => {
+    vi.stubEnv('SCANS_PER_VISITOR_PER_HOUR', '50');
+
+    expect(scansPerVisitorPerHour()).toBe(50);
+    expect(scanRefusal({ byVisitorLastHour: 10, active: 0 })).toBeUndefined();
+  });
+
+  it.each(['0', '-3', 'lots', '2.5', ''])(
+    'ignores a setting of "%s"',
+    (value) => {
+      vi.stubEnv('SCANS_PER_VISITOR_PER_HOUR', value);
+
+      expect(scansPerVisitorPerHour()).toBe(SCANS_PER_VISITOR_PER_HOUR);
+    },
+  );
+
+  it("can't be raised so far that the limit is gone", () => {
+    vi.stubEnv('SCANS_PER_VISITOR_PER_HOUR', '1000000');
+
+    expect(scansPerVisitorPerHour()).toBe(MAX_SCANS_PER_VISITOR_PER_HOUR);
   });
 });
 
