@@ -105,6 +105,7 @@ describe('findLeaks catches', () => {
     ['an older OpenAI key', FAKE_KEYS.openaiLegacy, 'openai-key'],
     ['an Anthropic key', FAKE_KEYS.anthropic, 'anthropic-key'],
     ['an AWS key ID', FAKE_KEYS.aws, 'aws-key'],
+    ['a Google API key', FAKE_KEYS.googleApiKey, 'google-api-key'],
   ])('%s', (_name, key, rule) => {
     const leaks = leaksIn(`const key = "${key}";`);
 
@@ -129,7 +130,6 @@ describe('findLeaks does not flag', () => {
     ['a Supabase publishable key', PUBLIC_VALUES.supabasePublishable],
     ['a Stripe publishable key', PUBLIC_VALUES.stripePublishable],
     ['a Stripe test key', PUBLIC_VALUES.stripeTest],
-    ['a Google browser key', PUBLIC_VALUES.googleBrowserKey],
     ['a token that cannot be decoded', 'eyJhbGci.eyJub3Rqc29u.c2ln'],
     ['a CSS class', 'sk-circle-fade-dot-animation-with-a-long-name'],
     ['a library constant', '"-----BEGIN PRIVATE KEY-----"'],
@@ -300,13 +300,31 @@ describe('finding contents', () => {
     }
   });
 
-  it('tells people to replace the key, not just remove it', async () => {
-    for (const finding of await findingsFor(leakyContext())) {
+  it('tells people to replace a secret key, not just remove it', async () => {
+    const secrets = (await findingsFor(leakyContext())).filter(
+      ({ id }) => !id.startsWith('bundle-secrets:google-api-key'),
+    );
+    expect(secrets.length).toBeGreaterThan(0);
+    for (const finding of secrets) {
       expect(finding.manualFix.description).toContain('Create a new key');
       expect(finding.manualFix.description).toContain('Delete the old key');
       expect(finding.aiFix.request).toContain('delete the old one');
       expect(finding.safetyStep).toContain('Create a new key');
     }
+  });
+
+  it('tells people to restrict a Google key, not delete it', async () => {
+    const [finding] = await findingsFor(
+      contextFor({
+        '/': { body: `<script>"${FAKE_KEYS.googleApiKey}"</script>` },
+      }),
+    );
+
+    expect(finding).toMatchObject({
+      severity: 'medium',
+      safetyStep: expect.stringContaining('API restrictions'),
+      manualFix: { description: expect.stringContaining("don't remove it") },
+    });
   });
 
   it('gives each key an id from its type and last 4 characters', async () => {

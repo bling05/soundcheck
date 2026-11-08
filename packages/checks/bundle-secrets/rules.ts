@@ -7,7 +7,8 @@ export type SecretRuleId =
   | 'private-key'
   | 'openai-key'
   | 'anthropic-key'
-  | 'aws-key';
+  | 'aws-key'
+  | 'google-api-key';
 
 interface SecretRule {
   id: SecretRuleId;
@@ -102,6 +103,13 @@ const SECRET_RULES: readonly SecretRule[] = [
   {
     id: 'aws-key',
     pattern: /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g,
+    isReal: looksReal,
+  },
+  {
+    // Meant to be public for Maps or Firebase. It's flagged because it also works on
+    // Gemini, billed to the owner, once Gemini is turned on in the same Google project.
+    id: 'google-api-key',
+    pattern: /\bAIza[0-9A-Za-z_-]{35}(?![0-9A-Za-z_-])/g,
     isReal: looksReal,
   },
 ];

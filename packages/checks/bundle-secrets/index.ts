@@ -38,7 +38,8 @@ async function run(context: CheckContext): Promise<CheckResult> {
   }
 
   const found = leaks.map(({ rule, redacted, locations }): Finding => {
-    const { title, severity, manualFix, fixRequest } = RULE_CONTENT[rule];
+    const { title, severity, manualFix, fixRequest, safetyStep } =
+      RULE_CONTENT[rule];
     return {
       // The redacted key, so the same leaked key keeps its id until it's replaced.
       id: findingId(CHECK_ID, rule, redacted),
@@ -46,7 +47,7 @@ async function run(context: CheckContext): Promise<CheckResult> {
       title,
       severity,
       source: 'live',
-      safetyStep: REPLACE_KEY_FIRST,
+      safetyStep: safetyStep ?? REPLACE_KEY_FIRST,
       evidence: locations.slice(0, MAX_EVIDENCE_FILES).map((url) => ({
         kind: 'url',
         url,

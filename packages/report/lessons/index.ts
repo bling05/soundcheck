@@ -1,6 +1,7 @@
 import type { Lesson } from '../types';
 import { BUNDLE_SECRETS_LESSONS } from './bundle-secrets';
 import { LEFTOVER_FILES_LESSONS } from './leftover-files';
+import { NEXTJS_VERSION_LESSONS } from './nextjs-version';
 import { SECURITY_HEADERS_LESSONS } from './security-headers';
 import { SUPABASE_RLS_LESSONS } from './supabase-rls';
 import { SUPABASE_STORAGE_LESSONS } from './supabase-storage';
@@ -15,6 +16,7 @@ export const LESSONS = {
   ...LEFTOVER_FILES_LESSONS,
   ...SUPABASE_RLS_LESSONS,
   ...SUPABASE_STORAGE_LESSONS,
+  ...NEXTJS_VERSION_LESSONS,
 } satisfies Record<string, Lesson>;
 
 export type LessonId = keyof typeof LESSONS;

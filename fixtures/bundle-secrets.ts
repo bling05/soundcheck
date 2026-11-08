@@ -26,6 +26,8 @@ export const FAKE_KEYS = {
   openaiLegacy: 'sk-' + 'b2C3d4E5'.repeat(6),
   anthropic: 'sk-' + 'ant-' + 'api03-' + 'c3D4e5F6'.repeat(10),
   aws: 'AKIA' + '0123456789ABCDEF',
+  /** Meant to be public for Maps or Firebase, but it works on Gemini if Gemini is turned on. */
+  googleApiKey: 'AIza' + 'a1B2c3D4'.repeat(4) + 'abc',
 };
 
 export const PUBLIC_VALUES = {
@@ -35,7 +37,6 @@ export const PUBLIC_VALUES = {
   supabasePublishable: 'sb_' + 'publishable_' + 'a1B2c3D4'.repeat(4),
   stripePublishable: 'pk_' + 'live_' + '0123456789abcdefABCDEF01',
   stripeTest: 'sk_' + 'test_' + '0123456789abcdefABCDEF01',
-  googleBrowserKey: 'AIza' + 'a1B2c3D4'.repeat(4) + 'abc',
 };
 
 const page = (head: string) => `<!doctype html><head>${head}</head><h1>Hi</h1>`;
@@ -55,7 +56,6 @@ export const publicKeysSite: FixtureSite = {
     body: [
       `createClient("https://fixturefixturefixtur.supabase.co", "${PUBLIC_VALUES.supabaseAnon}");`,
       `loadStripe("${PUBLIC_VALUES.stripePublishable}");`,
-      `init({ apiKey: "${PUBLIC_VALUES.googleBrowserKey}" });`,
       `const css = "sk-circle-fade-dot-animation-with-a-long-name";`,
       'const PEM_START = "-----BEGIN PRIVATE KEY-----";',
     ].join('\n'),

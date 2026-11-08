@@ -136,7 +136,7 @@ export async function runScan(
     (await checkVerification(url, options.verificationCode, fetch)).verified;
 
   const checks = options.checks.filter((check) =>
-    appliesTo(check, fingerprint.platforms, verified),
+    appliesTo(check, stack, verified),
   );
   await options.onPlanned?.(checks.map(({ id, title }) => ({ id, title })));
 

@@ -1,5 +1,6 @@
 import { bundleSecrets } from './bundle-secrets';
 import { leftoverFiles } from './leftover-files';
+import { nextjsVersion } from './nextjs-version';
 import { supabaseRls } from './supabase-rls';
 import { supabaseStorage } from './supabase-storage';
 import { securityHeaders } from './security-headers';
@@ -41,4 +42,5 @@ export const checks: readonly Check[] = [
   leftoverFiles,
   supabaseRls,
   supabaseStorage,
+  nextjsVersion,
 ];

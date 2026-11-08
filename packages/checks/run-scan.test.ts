@@ -47,7 +47,14 @@ describe('runScan', () => {
     const report = reportOf(await scanFixture(checks));
 
     expect(report.outcomes.map(({ checkId }) => checkId)).toEqual(
-      checks.filter(({ mode }) => mode === 'url-passive').map(({ id }) => id),
+      // The fixture isn't built with anything in particular, so checks for one
+      // technology, like the Next.js version check, rightly don't run.
+      checks
+        .filter(
+          ({ mode, platforms }) =>
+            mode === 'url-passive' && platforms === 'all',
+        )
+        .map(({ id }) => id),
     );
     expect(report.notAttempted).toEqual(NOT_ATTEMPTED);
     const leftovers = report.outcomes.find(

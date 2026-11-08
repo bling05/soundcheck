@@ -4,6 +4,8 @@ import type { SecretRuleId } from './rules';
 type RuleContent = Pick<Finding, 'title' | 'severity' | 'manualFix'> & {
   /** What to ask an AI tool to change. */
   fixRequest: string;
+  /** What the owner must do themselves first. Without one, the key must be replaced. */
+  safetyStep?: string;
 };
 
 function serverOnlyFix(
@@ -85,5 +87,22 @@ export const RULE_CONTENT: Record<SecretRuleId, RuleContent> = {
       'your AWS account',
     ),
     fixRequest: fixRequestFor('AWS', 'AWS_SECRET_ACCESS_KEY'),
+  },
+  // Medium: it's meant to be public and is only dangerous if Gemini is on, which we can't
+  // see from outside. Restricting it is the fix, not hiding it.
+  'google-api-key': {
+    title: "Check that the Google API key in your site's code can't use Gemini",
+    severity: 'medium',
+    safetyStep:
+      "In Google Cloud, open APIs & Services, then Credentials, and edit this key. Under API restrictions, allow only the services your site uses, like Maps or Firebase, so it can never call Gemini. Under Application restrictions, allow only your site's address.",
+    manualFix: {
+      description:
+        "This key is meant to be in your site's code, so don't remove it. Instead, limit what it can do in Google Cloud: open APIs & Services, then Credentials, edit the key, and under API restrictions allow only the services your site uses. Also check whether the Generative Language API (Gemini) is turned on in this project. If you need Gemini, use a separate key that only your server knows.",
+      language: 'text',
+      snippet:
+        'Google Cloud console > APIs & Services > Credentials > (this key)\n  API restrictions: Restrict key, then choose only Maps, Firebase, and so on\n  Application restrictions: Websites, then https://your-site.example/*',
+    },
+    fixRequest:
+      "List which Google services this app uses with its Google API key, like Maps, Firebase, or Gemini, and where in the code each one is used. Don't remove or move the key, since it's meant to be in browser code for Maps and Firebase. If the app calls Gemini from browser code, move those calls to the server with a separate key from a private environment variable named GEMINI_API_KEY. Then remind me to restrict the browser key in Google Cloud to only the services you listed.",
   },
 };

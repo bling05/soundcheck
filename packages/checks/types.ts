@@ -31,7 +31,10 @@ export interface Check {
   id: string;
   title: string;
   mode: CheckMode;
-  /** Platforms this check applies to, or `all` for checks that don't depend on the backend. */
-  platforms: readonly Platform[] | 'all';
+  /**
+   * What the site must be built with for this check to run, like `supabase` or `nextjs`,
+   * or `all` for checks that apply to any site.
+   */
+  platforms: readonly Technology[] | 'all';
   run(context: CheckContext): Promise<CheckResult>;
 }
