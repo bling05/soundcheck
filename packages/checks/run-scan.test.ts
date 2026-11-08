@@ -73,7 +73,8 @@ describe('runScan', () => {
 
     await runScan(site.url, {
       fetch: (target, options) => {
-        visited.push(new URL(target).pathname);
+        // Check #1 asks for the page again as another website on purpose, to test CORS.
+        if (!options?.headers?.origin) visited.push(new URL(target).pathname);
         return fetch(target, options);
       },
       checks,

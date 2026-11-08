@@ -5,6 +5,9 @@ import type { Check, CheckContext, CheckResult } from '../types';
 import { RULE_CONTENT } from './content';
 import {
   countEnvSettings,
+  findDebugOutput,
+  readApiDocs,
+  type DebugKind,
   findSourceMap,
   matchesProbe,
   PROBES,
@@ -61,8 +64,38 @@ function probeDetail(
       return 'This file is public and looks like a copy of a database.';
     case 'site-archive':
       return 'This file is public and is a zip archive.';
+    case 'debug-page': {
+      const kind = findDebugOutput(body.toString());
+      return kind ? DEBUG_DETAIL[kind] : 'This page shows debug information.';
+    }
+    case 'api-docs': {
+      const docs = readApiDocs(body.toString());
+      if (docs?.kind === 'spec' && docs.addresses !== undefined) {
+        return `This file is public and lists ${docs.addresses} of your API's addresses.`;
+      }
+      return docs?.kind === 'spec'
+        ? "This file is public and lists your API's addresses."
+        : 'This page shows your API documentation to anyone.';
+    }
   }
 }
+
+const DEBUG_DETAIL: Record<DebugKind, string> = {
+  phpinfo:
+    "This page shows PHP's full settings, which can include passwords and keys.",
+  django:
+    "Your site's error page is in Django's debug mode, which shows settings and code to anyone.",
+  laravel:
+    "Your site's error page is Laravel's debug page, which shows code and settings to anyone.",
+  rails:
+    "Your site's error page is Rails' development page, which shows code and settings to anyone.",
+  'spring-env':
+    "This page lists your app's settings, which can include passwords and keys.",
+  'vite-dev':
+    "Your live site is running Vite's development server, which isn't built to be public.",
+  'next-dev':
+    "Your live site is running Next.js in development mode, which isn't built to be public.",
+};
 
 function mapDetail(contents: SourceMapContents): string {
   return contents === 'code'
@@ -84,7 +117,12 @@ async function probeFiles(
       unchecked++;
       continue;
     }
-    if (isOnSite(response, hostname) && matchesProbe(rule, response.body)) {
+    // Debug pages usually show up as error pages, so for those an error answer counts.
+    const onSite =
+      rule === 'debug-page'
+        ? new URL(response.url).hostname === hostname
+        : isOnSite(response, hostname);
+    if (onSite && matchesProbe(rule, response.body)) {
       found.push({
         rule,
         evidence: {
@@ -210,7 +248,27 @@ async function run(context: CheckContext): Promise<CheckResult> {
     context.fetch,
   );
 
-  const findings = toFindings([...probes.found, ...maps.found], context);
+  // The home page itself shows when a development server is live.
+  const home = site.files[0];
+  const devServer = home && findDebugOutput(home.text);
+  const homeFound: Found[] =
+    home && devServer && !probes.found.some(({ rule }) => rule === 'debug-page')
+      ? [
+          {
+            rule: 'debug-page',
+            evidence: {
+              kind: 'url',
+              url: home.location,
+              detail: DEBUG_DETAIL[devServer],
+            },
+          },
+        ]
+      : [];
+
+  const findings = toFindings(
+    [...homeFound, ...probes.found, ...maps.found],
+    context,
+  );
   const partial =
     probes.unchecked + maps.unchecked > 0 || site.filesNotRead > 0;
 

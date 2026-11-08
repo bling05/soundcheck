@@ -1,6 +1,11 @@
 import { findingId, withUniqueIds, type Finding } from '@soundcheck/report';
 import { readSite } from '../site-files';
 import type { Check, CheckContext, CheckResult } from '../types';
+import {
+  browserCallFinding,
+  coveredByKey,
+  findBrowserCalls,
+} from './browser-ai';
 import { RULE_CONTENT } from './content';
 import { findLeaks } from './rules';
 
@@ -31,9 +36,15 @@ async function run(context: CheckContext): Promise<CheckResult> {
   }
 
   const leaks = findLeaks(site.files);
+  const leakedRules = new Set(leaks.map(({ rule }) => rule));
+  // AI services called from the browser expose their key even when it isn't written in
+  // the code. When the key itself was found, that finding already covers it.
+  const browserCalls = findBrowserCalls(site.files).filter(
+    (call) => !coveredByKey(call, leakedRules),
+  );
 
   // Finding nothing after reading only part of a site must never look like a pass.
-  if (!site.complete && leaks.length === 0) {
+  if (!site.complete && leaks.length === 0 && browserCalls.length === 0) {
     return { status: 'skipped', reason: PARTIAL_READ };
   }
 
@@ -61,7 +72,10 @@ async function run(context: CheckContext): Promise<CheckResult> {
       },
     };
   });
-  const findings = withUniqueIds(found);
+  const findings = withUniqueIds([
+    ...found,
+    ...browserCalls.map(browserCallFinding),
+  ]);
 
   return site.complete
     ? { status: 'ran', findings }

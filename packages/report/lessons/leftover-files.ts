@@ -67,6 +67,26 @@ export const LEFTOVER_FILES_LESSONS = {
     owasp: OWASP,
     cwe: ['CWE-530'],
   },
+  'leftover-files:debug-page': {
+    whatItIs:
+      'Frameworks have a debug mode for building your site, which shows detailed errors, settings, and code when something goes wrong. Development servers, like vite dev or next dev, are for your own computer. One of these is on your live site.',
+    whyAiToolsProduceIt:
+      'Debug mode and development servers are what an AI tool sets up first, so you can see errors while building. Switching to the production setup is a separate step that is easy to skip, because the site seems to work either way.',
+    howItIsExploited:
+      'Attackers visit pages that cause an error, or the debug pages themselves, and read what comes back: settings, file paths, code, and sometimes passwords and keys. A development server can also hand out files it was never meant to share.',
+    owasp: OWASP,
+    cwe: ['CWE-489', 'CWE-215'],
+  },
+  'leftover-files:api-docs': {
+    whatItIs:
+      "API documentation pages, often made with Swagger, OpenAPI, or ReDoc, list every address your app's server answers, what each one expects, and often have buttons to try them out.",
+    whyAiToolsProduceIt:
+      'Many frameworks turn these pages on by default, and AI tools add them because they make testing easy. They rarely turn them off for the live site.',
+    howItIsExploited:
+      "It's a ready-made map for an attacker: every address, including ones your site never links to, and exactly how to call them. Any address that forgets to check who is asking is easy to find and try.",
+    owasp: OWASP,
+    cwe: ['CWE-200'],
+  },
   'leftover-files:source-map': {
     whatItIs:
       'Before your site goes live, build tools squash your code into a form that is hard to read. A source map is a file that turns it back into your original code, and it is meant for debugging.',

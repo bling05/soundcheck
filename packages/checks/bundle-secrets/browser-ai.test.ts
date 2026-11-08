@@ -1,8 +1,10 @@
 import { LESSONS } from '@soundcheck/report';
 import { afterEach, describe, expect, it } from 'vitest';
+import { FAKE_KEYS } from '../../../fixtures/bundle-secrets';
 import { startFixture, type RunningFixture } from '../../../fixtures/server';
 import { testFetchFor } from '../request-guard/test-fetch';
-import { browserAiCalls, findBrowserCalls } from './index';
+import { findBrowserCalls } from './browser-ai';
+import { bundleSecrets } from './index';
 
 let site: RunningFixture;
 afterEach(() => site?.stop());
@@ -12,11 +14,13 @@ async function scanCode(code: string) {
     '/': { body: '<script src="/assets/app.js"></script><h1>Hi</h1>' },
     '/assets/app.js': { body: code },
   });
-  return browserAiCalls.run({
+  const result = await bundleSecrets.run({
     url: site.url,
     fetch: testFetchFor(site),
     platforms: [],
   });
+  if (result.status !== 'ran') throw new Error('did not run');
+  return result.findings;
 }
 
 const callsIn = (text: string) =>
@@ -24,26 +28,32 @@ const callsIn = (text: string) =>
     ({ provider, allowedBrowser }) => [provider, allowedBrowser],
   );
 
-describe('browser AI calls check against a fake site', () => {
-  it('reports a site that calls OpenAI from the browser', async () => {
-    const result = await scanCode(
-      'new OpenAI({apiKey:k,dangerouslyAllowBrowser:!0,baseURL:"https://api.openai.com/v1"})',
+describe('AI services called from the browser, in Check #2', () => {
+  it('reports a site that calls OpenAI from the browser without the key in its code', async () => {
+    const findings = await scanCode(
+      'new OpenAI({apiKey:settings.key,dangerouslyAllowBrowser:!0,baseURL:"https://api.openai.com/v1"})',
     );
 
-    expect(result).toMatchObject({
-      status: 'ran',
-      findings: [
-        {
-          id: 'browser-ai-calls:openai',
-          severity: 'high',
-          title: 'Your site calls OpenAI straight from the browser',
-        },
-      ],
-    });
-    if (result.status !== 'ran') return;
-    expect(result.findings[0]?.evidence[0]?.detail).toContain(
+    expect(findings).toMatchObject([
+      {
+        id: 'bundle-secrets:browser-ai-call:openai',
+        severity: 'high',
+        title: 'Your site calls OpenAI straight from the browser',
+      },
+    ]);
+    expect(findings[0]?.evidence[0]?.detail).toContain(
       "turns off the library's warning",
     );
+  });
+
+  it('reports only the key when the key is in the code too', async () => {
+    const findings = await scanCode(
+      `new OpenAI({apiKey:"${FAKE_KEYS.openaiProject}",baseURL:"https://api.openai.com/v1"})`,
+    );
+
+    expect(findings.map(({ id }) => id)).toEqual([
+      expect.stringMatching(/^bundle-secrets:openai-key:/),
+    ]);
   });
 
   it('passes a site that only links to the AI companies', async () => {
@@ -51,25 +61,20 @@ describe('browser AI calls check against a fake site', () => {
       await scanCode(
         'const links = ["https://openai.com", "https://www.anthropic.com/claude", "https://gemini.google.com"];',
       ),
-    ).toEqual({ status: 'ran', findings: [] });
+    ).toEqual([]);
   });
 
   it('has everything a finding needs', async () => {
-    const result = await scanCode(
+    const findings = await scanCode(
       'fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini:generateContent?key="+k)',
     );
 
-    if (result.status !== 'ran') throw new Error('did not run');
-    expect(result.findings).toHaveLength(1);
-    for (const finding of result.findings) {
+    expect(findings).toHaveLength(1);
+    for (const finding of findings) {
       expect(LESSONS[finding.lessonId]).toBeDefined();
       expect(finding.aiFix.request).toContain('GEMINI_API_KEY');
+      expect(finding.safetyStep).toContain('create a new Gemini key');
     }
-  });
-
-  it('runs for anyone, on any site', () => {
-    expect(browserAiCalls.mode).toBe('url-passive');
-    expect(browserAiCalls.platforms).toBe('all');
   });
 });
 

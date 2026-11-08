@@ -84,6 +84,35 @@ export const RULE_CONTENT: Record<LeftoverRuleId, RuleContent> = {
     fixRequest:
       "A zip file is being published with this site. Find every .zip file in the project outside node_modules, remove any that are backups or copies of the project from the published folders, and make sure the build can't copy them there again. If any of them could contain a .env file, remind me to replace the keys in it.",
   },
+  // High: debug output often includes settings, keys, and code, but not always all of them.
+  'debug-page': {
+    title: 'Your site is showing developer debug information',
+    severity: 'high',
+    safetyStep:
+      'If the page showed any passwords or keys, replace them, because anyone could have seen them.',
+    manualFix: fixed({
+      description: `Turn debug mode off for your live site, and delete any debug pages like phpinfo.php. If your live site is running a development server, such as vite dev or next dev, build the site and run the production version instead. ${REDEPLOY_AND_CHECK}`,
+      language: 'text',
+      snippet:
+        'Django: DEBUG = False\nLaravel: APP_DEBUG=false\nVite: vite build, then serve the dist folder\nNext.js: next build, then next start',
+    }),
+    fixRequest:
+      "This live site is showing developer debug information to anyone, such as a framework's debug error page, a phpinfo page, a settings page, or a development server. Turn debug mode off for production, delete any debug pages, and make sure production runs the built version of the app, not a development server. Keep debug mode for local development if it's useful. Tell me what you changed, and remind me to replace any keys the debug output showed.",
+  },
+  // Low: some APIs are meant to be public, so this asks the owner to check.
+  'api-docs': {
+    title: "Your API documentation is public. Check that's on purpose",
+    severity: 'low',
+    manualFix: fixed({
+      description:
+        "If your API isn't meant for other people to use, turn its documentation pages off on the live site, or put them behind a login. Either way, make sure every address it lists checks who is asking, since anyone can see the list.",
+      language: 'text',
+      snippet:
+        'FastAPI: FastAPI(docs_url=None, redoc_url=None, openapi_url=None)\nExpress: only add swagger-ui-express when NODE_ENV is not "production"',
+    }),
+    fixRequest:
+      "This site's API documentation, such as a Swagger, OpenAPI, or ReDoc page, is public. If this API isn't meant for outside developers, turn the documentation off in production or put it behind a login. Then go through every address it lists and make sure each one checks that the caller is signed in and allowed to do what they ask. Tell me which addresses didn't check, and what you changed.",
+  },
   'source-map': {
     title: "Your site's source maps are public",
     severity: 'low',

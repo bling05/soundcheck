@@ -33,7 +33,14 @@ export interface GuardedFetchOptions {
  * The only headers a check may add. Nothing here can turn off the guard's own protections,
  * like the request for uncompressed responses.
  */
-const ALLOWED_HEADERS = new Set(['apikey', 'authorization', 'prefer', 'range']);
+const ALLOWED_HEADERS = new Set([
+  'apikey',
+  'authorization',
+  'prefer',
+  'range',
+  // Says which website a request comes from, to see whether the site lets others read it.
+  'origin',
+]);
 
 /** Thrown for a header outside `ALLOWED_HEADERS`. A bug in a check, never a site's fault. */
 export class DisallowedHeaderError extends Error {

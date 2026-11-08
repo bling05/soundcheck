@@ -4,7 +4,7 @@ Open-source security scanner for apps that are built with Lovable, Bolt, Cursor,
 
 Scan a live URL, a GitHub repo, or both. Every finding comes with evidence, an explanation, a manual fix, and a ready-to-paste AI prompt. Scans are deterministic and do not use an LLM, and every report lists what it did not check.
 
-**Status:** in development, live at https://soundcheck-lovat.vercel.app. Website scans run eight checks: security headers, secret keys in public code, leftover files, outdated Next.js, and AI services called from the browser for anyone, plus Supabase tables, Supabase file storage, and Firebase databases anyone can read for owners who verify their site. Repo scans aren't built yet.
+**Status:** in development, live at https://soundcheck-lovat.vercel.app. Website scans run seven checks: security headers, secret keys and AI services called from the browser, leftover files, and outdated Next.js for anyone, plus Supabase tables, Supabase file storage, and Firebase databases anyone can read for owners who verify their site. Repo scans aren't built yet.
 
 ## Getting started
 

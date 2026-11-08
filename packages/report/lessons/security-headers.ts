@@ -54,4 +54,34 @@ export const SECURITY_HEADERS_LESSONS = {
     owasp: OWASP,
     cwe: ['CWE-693'],
   },
+  'security-headers:cors-any-site': {
+    whatItIs:
+      "Browsers stop one website from reading another website's pages, which is what keeps a random site you open from reading your email. CORS headers let a site relax that rule for websites it trusts. Yours copies back any website that asks, and also allows logged-in requests.",
+    whyAiToolsProduceIt:
+      'When a browser blocks a request with a CORS error, the quickest fix an AI tool can suggest is to allow every website. Allowing logins too makes the next error go away, and together they switch the protection off.',
+    howItIsExploited:
+      "An attacker makes a page that quietly asks your site for a visitor's data. When someone logged in to your site opens that page, their browser sends the request with their login, and your site lets the attacker's page read the answer.",
+    owasp: ['A05:2021 Security Misconfiguration'],
+    cwe: ['CWE-942'],
+  },
+  'security-headers:cookie-not-secure': {
+    whatItIs:
+      'Cookies are how your site remembers who is logged in. The Secure flag tells browsers to only send a cookie over an encrypted connection.',
+    whyAiToolsProduceIt:
+      "Cookies work without the flag, and it can get in the way when testing on your own computer without HTTPS, so it's often left off and never added for the live site.",
+    howItIsExploited:
+      'If a visitor ever opens a plain http:// link to your site, for example on shared Wi-Fi, the login cookie can be sent unencrypted and copied by someone on the same network, who can then act as that visitor.',
+    owasp: ['A02:2021 Cryptographic Failures'],
+    cwe: ['CWE-614'],
+  },
+  'security-headers:cookie-not-httponly': {
+    whatItIs:
+      'Cookies are how your site remembers who is logged in. The HttpOnly flag tells browsers never to let page scripts read a cookie, only send it with requests.',
+    whyAiToolsProduceIt:
+      "AI tools sometimes read the login cookie from browser code because it's an easy way to check who is signed in, and that only works if the flag is off.",
+    howItIsExploited:
+      "If an attacker ever gets a script onto your page, for example through a comment box, it can copy every visitor's login cookie and send it to them, letting them log in as those visitors.",
+    owasp: ['A05:2021 Security Misconfiguration'],
+    cwe: ['CWE-1004'],
+  },
 } satisfies Record<`security-headers:${string}`, Lesson>;

@@ -1,11 +1,15 @@
-export type RuleId =
+import type { CookieCorsRuleId } from './cookies-cors';
+
+export type HeaderRuleId =
   | 'content-security-policy'
   | 'strict-transport-security'
   | 'frame-protection'
   | 'content-type-options';
 
+export type RuleId = HeaderRuleId | CookieCorsRuleId;
+
 export interface Problem {
-  rule: RuleId;
+  rule: HeaderRuleId;
   /** The response header a report should point at. */
   header: string;
   /** Fixed wording, never the site's own header text. */

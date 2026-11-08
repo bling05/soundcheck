@@ -3,6 +3,7 @@ import type { Technology } from '@soundcheck/shared';
 import { withoutQuery } from '../site-files';
 import type { Check, CheckContext, CheckResult } from '../types';
 import { RULE_CONTENT } from './content';
+import { checkCookies, checkCors, TEST_ORIGIN } from './cookies-cors';
 import { findProblems } from './rules';
 
 const CHECK_ID = 'security-headers';
@@ -40,27 +41,43 @@ async function run(context: CheckContext): Promise<CheckResult> {
 
   const url = withoutQuery(response.url);
   const page = new URL(url).pathname;
-  const findings = findProblems(response.headers, response.body.toString()).map(
-    ({ rule, header, detail }): Finding => {
-      const { title, severity, manualFix, fixRequest } = RULE_CONTENT[rule];
-      return {
-        id: findingId(CHECK_ID, rule, page),
-        checkId: CHECK_ID,
-        title,
-        severity,
-        source: 'live',
-        evidence: [{ kind: 'header', url, header, detail }],
-        lessonId: `${CHECK_ID}:${rule}`,
-        manualFix: {
-          ...manualFix,
-          description: `${whereToAddHeader(context.technologies)} ${manualFix.description}`,
-        },
-        aiFix: { problem: title, request: fixRequest },
-      };
-    },
-  );
 
-  return { status: 'ran', findings };
+  // Asked again as another website, to see whether the site lets any website read it.
+  const asOtherSite = await context.fetch(context.url, {
+    headers: { origin: TEST_ORIGIN },
+  });
+  const cors = asOtherSite.ok ? checkCors(asOtherSite.headers) : null;
+
+  const problems = [
+    ...findProblems(response.headers, response.body.toString()),
+    ...(cors ? [cors] : []),
+    ...checkCookies(response.headers, url.startsWith('https:')),
+  ];
+  const findings = problems.map(({ rule, header, detail }): Finding => {
+    const { title, severity, manualFix, fixRequest } = RULE_CONTENT[rule];
+    return {
+      id: findingId(CHECK_ID, rule, page),
+      checkId: CHECK_ID,
+      title,
+      severity,
+      source: 'live',
+      evidence: [{ kind: 'header', url, header, detail }],
+      lessonId: `${CHECK_ID}:${rule}`,
+      manualFix: {
+        ...manualFix,
+        description: `${whereToAddHeader(context.technologies)} ${manualFix.description}`,
+      },
+      aiFix: { problem: title, request: fixRequest },
+    };
+  });
+
+  return asOtherSite.ok
+    ? { status: 'ran', findings }
+    : {
+        status: 'ran',
+        findings,
+        note: "We couldn't check whether other websites can read your site, because the second request to it failed.",
+      };
 }
 
 export const securityHeaders: Check = {

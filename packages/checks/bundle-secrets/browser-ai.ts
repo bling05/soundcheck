@@ -1,8 +1,8 @@
 import { findingId, type Finding } from '@soundcheck/report';
-import { readSite, type SiteFile } from '../site-files';
-import type { Check, CheckContext, CheckResult } from '../types';
+import type { SiteFile } from '../site-files';
+import type { SecretRuleId } from './rules';
 
-const CHECK_ID = 'browser-ai-calls';
+const CHECK_ID = 'bundle-secrets';
 const MAX_EVIDENCE_FILES = 5;
 
 export type Provider = 'openai' | 'anthropic' | 'gemini';
@@ -13,6 +13,11 @@ interface ProviderRule {
   address: RegExp;
   /** The server-only setting for the key. */
   variable: string;
+  /**
+   * The leaked-key rule for the same service. When that key is in the code, its finding
+   * already says to move the calls to the server, so this one would only repeat it.
+   */
+  keyRule?: SecretRuleId;
 }
 
 // The API addresses, not the companies' websites, so a link to openai.com doesn't count.
@@ -22,12 +27,16 @@ export const PROVIDERS: Record<Provider, ProviderRule> = {
     name: 'OpenAI',
     address: /https:\/\/api\.openai\.com\/v1\b/,
     variable: 'OPENAI_API_KEY',
+    keyRule: 'openai-key',
   },
   anthropic: {
     name: 'Anthropic',
     address: /https:\/\/api\.anthropic\.com\b/,
     variable: 'ANTHROPIC_API_KEY',
+    keyRule: 'anthropic-key',
   },
+  // A Google key's own finding is about restricting it, not about Gemini calls, so a
+  // Gemini call is always reported too.
   gemini: {
     name: 'Gemini',
     address: /https:\/\/generativelanguage\.googleapis\.com\b/,
@@ -58,15 +67,29 @@ export function findBrowserCalls(files: readonly SiteFile[]): BrowserCall[] {
   });
 }
 
-function findingFor({ provider, locations, allowedBrowser }: BrowserCall) {
+/** True when a leaked key for the same service is already reported. */
+export function coveredByKey(
+  call: BrowserCall,
+  leakedRules: ReadonlySet<SecretRuleId>,
+): boolean {
+  const { keyRule } = PROVIDERS[call.provider];
+  return keyRule !== undefined && leakedRules.has(keyRule);
+}
+
+export function browserCallFinding({
+  provider,
+  locations,
+  allowedBrowser,
+}: BrowserCall): Finding {
   const { name, variable } = PROVIDERS[provider];
   const title = `Your site calls ${name} straight from the browser`;
   return {
-    id: findingId(CHECK_ID, provider),
+    id: findingId(CHECK_ID, 'browser-ai-call', provider),
     checkId: CHECK_ID,
     title,
     severity: 'high',
     source: 'live',
+    safetyStep: `Once ${name} is only called from your server, create a new ${name} key and delete the old one, since visitors' browsers have been sending it with every request.`,
     evidence: locations.slice(0, MAX_EVIDENCE_FILES).map((url) => ({
       kind: 'url',
       url,
@@ -74,7 +97,7 @@ function findingFor({ provider, locations, allowedBrowser }: BrowserCall) {
         ? `This file contacts ${name} directly, and the code turns off the library's warning against running it in a browser.`
         : `This file contacts ${name} directly from your visitors' browsers.`,
     })),
-    lessonId: `${CHECK_ID}:direct-call`,
+    lessonId: `${CHECK_ID}:browser-ai-call`,
     manualFix: {
       description: `Move every ${name} call into code that only runs on your server, like an API route, and have the browser call that instead. Give the server the key through a private environment variable. Then create a new ${name} key and delete the old one, since the old one has been visible to visitors. If each visitor types in their own key, this is fine and you can ignore it.`,
       language: 'ts',
@@ -84,41 +107,5 @@ function findingFor({ provider, locations, allowedBrowser }: BrowserCall) {
       problem: title,
       request: `Move every ${name} call out of browser code into a server-only API route, reading the key from a private environment variable named ${variable}. The name must not start with NEXT_PUBLIC_ or VITE_. Only let signed-in users call the route, and add a limit on how often each user can call it. Remove any dangerouslyAllowBrowser setting. Then remind me to create a new ${name} key and delete the old one myself. If visitors enter their own keys instead of using mine, tell me and change nothing.`,
     },
-  } satisfies Finding;
+  };
 }
-
-async function run(context: CheckContext): Promise<CheckResult> {
-  if (!context.url) {
-    return {
-      status: 'skipped',
-      reason: 'This check needs a link to your site.',
-    };
-  }
-  const site = await readSite(context.url, context.fetch);
-  if (!site.ok) return { status: 'skipped', reason: site.message };
-  if (site.status >= 400) {
-    return {
-      status: 'skipped',
-      reason: `Your site answered with error ${site.status}, so we couldn't read its code.`,
-    };
-  }
-
-  const findings = findBrowserCalls(site.files).map(findingFor);
-  const partial =
-    "We couldn't read all of your site's code, so there could be more we didn't see.";
-  // Finding nothing after reading only part of a site must never look like a pass.
-  if (!site.complete && findings.length === 0) {
-    return { status: 'skipped', reason: partial };
-  }
-  return site.complete
-    ? { status: 'ran', findings }
-    : { status: 'ran', findings, note: partial };
-}
-
-export const browserAiCalls: Check = {
-  id: CHECK_ID,
-  title: 'AI services called straight from the browser',
-  mode: 'url-passive',
-  platforms: 'all',
-  run,
-};

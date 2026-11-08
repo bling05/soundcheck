@@ -1,5 +1,11 @@
 export type LeftoverRuleId =
-  'env-file' | 'git-folder' | 'database-dump' | 'site-archive' | 'source-map';
+  | 'env-file'
+  | 'git-folder'
+  | 'database-dump'
+  | 'site-archive'
+  | 'debug-page'
+  | 'api-docs'
+  | 'source-map';
 
 export type ProbeRuleId = Exclude<LeftoverRuleId, 'source-map'>;
 
@@ -20,6 +26,19 @@ export const PROBES: readonly Probe[] = [
   { rule: 'database-dump', path: '/db.sql' },
   { rule: 'site-archive', path: '/backup.zip' },
   { rule: 'site-archive', path: '/site.zip' },
+  { rule: 'debug-page', path: '/phpinfo.php' },
+  { rule: 'debug-page', path: '/info.php' },
+  { rule: 'debug-page', path: '/actuator/env' },
+  // A page that doesn't exist, to see the site's error page. In debug mode, frameworks
+  // like Django and Rails show their settings and code there.
+  { rule: 'debug-page', path: '/soundcheck-missing-page' },
+  { rule: 'api-docs', path: '/swagger.json' },
+  { rule: 'api-docs', path: '/openapi.json' },
+  { rule: 'api-docs', path: '/api-docs' },
+  { rule: 'api-docs', path: '/v3/api-docs' },
+  { rule: 'api-docs', path: '/swagger-ui.html' },
+  { rule: 'api-docs', path: '/docs' },
+  { rule: 'api-docs', path: '/api/docs' },
 ];
 
 /**
@@ -71,6 +90,66 @@ export function isZip(body: Buffer): boolean {
   );
 }
 
+export type DebugKind =
+  | 'phpinfo'
+  | 'django'
+  | 'laravel'
+  | 'rails'
+  | 'spring-env'
+  | 'vite-dev'
+  | 'next-dev';
+
+// Each is something only the framework's own debug output contains, so a page that merely
+// mentions debugging doesn't count.
+const DEBUG_SIGNS: readonly [DebugKind, RegExp][] = [
+  ['phpinfo', /phpinfo\(\)\s*<\/title>/i],
+  ['django', /DEBUG = True<\/code> in your Django settings file/],
+  ['laravel', /\bwindow\.ignite\b|Whoops\\Run|class="Whoops container"/],
+  [
+    'rails',
+    /Action Controller: Exception caught|<h1>Routing Error<\/h1>[\s\S]{0,4000}Rails\.root/,
+  ],
+  [
+    'spring-env',
+    /^\s*\{[\s\S]*"activeProfiles"\s*:[\s\S]*"propertySources"\s*:/,
+  ],
+  ['vite-dev', /<script[^>]+src=["']\/@vite\/client["']/],
+  ['next-dev', /"buildId"\s*:\s*"development"/],
+];
+
+/** Which framework's debug output this is, or undefined if it isn't any. */
+export function findDebugOutput(text: string): DebugKind | undefined {
+  return DEBUG_SIGNS.find(([, sign]) => sign.test(text))?.[0];
+}
+
+const API_SPEC = /^\s*\{[\s\S]*"(?:swagger|openapi)"\s*:\s*"[23]\./;
+const API_DOCS_PAGE =
+  /swagger-ui(?:-bundle)?(?:\.min)?\.js|swagger-ui\.css|SwaggerUIBundle\s*\(|<redoc\b|redoc\.standalone\.js/i;
+
+export type ApiDocs = { kind: 'spec'; addresses?: number } | { kind: 'page' };
+
+/** What kind of API documentation this is, or undefined if it isn't any. */
+export function readApiDocs(text: string): ApiDocs | undefined {
+  if (API_SPEC.test(text)) {
+    try {
+      const spec: unknown = JSON.parse(text);
+      const paths =
+        typeof spec === 'object' && spec !== null && 'paths' in spec
+          ? spec.paths
+          : undefined;
+      return {
+        kind: 'spec',
+        ...(typeof paths === 'object' &&
+          paths !== null && { addresses: Object.keys(paths).length }),
+      };
+    } catch {
+      // Cut off at the size limit, or not quite JSON. It's still the spec.
+      return { kind: 'spec' };
+    }
+  }
+  return API_DOCS_PAGE.test(text) ? { kind: 'page' } : undefined;
+}
+
 /** Whether a probe found the file, given what came back. */
 export function matchesProbe(rule: ProbeRuleId, body: Buffer): boolean {
   const text = body.toString();
@@ -83,6 +162,10 @@ export function matchesProbe(rule: ProbeRuleId, body: Buffer): boolean {
       return isDatabaseDump(text);
     case 'site-archive':
       return isZip(body);
+    case 'debug-page':
+      return findDebugOutput(text) !== undefined;
+    case 'api-docs':
+      return readApiDocs(text) !== undefined;
   }
 }
 
