@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { isPublicAddress } from './address-policy';
 import {
   DisallowedHeaderError,
+  DisallowedRequestError,
   fetchWithPolicy,
   guardedFetch,
   type GuardPolicy,
@@ -423,5 +424,81 @@ describe('extra headers', () => {
     expect(requests[0]?.headers.apikey).toBe('public-key');
     expect(requests[1]?.headers.apikey).toBeUndefined();
     expect(requests[1]?.headers.authorization).toBeUndefined();
+  });
+});
+
+describe('read-only POST', () => {
+  const LIST = '/storage/v1/object/list/avatars';
+
+  it('sends a small JSON question to a read-only address', async () => {
+    let received = '';
+    handler = (request, response) => {
+      request.on('data', (chunk: Buffer) => (received += chunk.toString()));
+      request.on('end', () => response.end('[]'));
+    };
+
+    const result = await fetchWithPolicy(
+      `http://127.0.0.1:${port}${LIST}`,
+      { method: 'POST', json: { prefix: '', limit: 100 } },
+      testPolicy(),
+    );
+
+    expect(result).toMatchObject({ ok: true, status: 200 });
+    expect(requests[0]?.method).toBe('POST');
+    expect(requests[0]?.headers['content-type']).toBe('application/json');
+    expect(JSON.parse(received)).toEqual({ prefix: '', limit: 100 });
+  });
+
+  it.each([
+    '/rest/v1/profiles',
+    '/storage/v1/object/avatars/photo.png',
+    '/storage/v1/object/list/avatars/../../rest',
+    `${LIST}?x=1`,
+    '/',
+  ])('refuses POST to %s, which could change data', async (path) => {
+    await expect(
+      fetchWithPolicy(
+        `http://127.0.0.1:${port}${path}`,
+        { method: 'POST', json: {} },
+        testPolicy(),
+      ),
+    ).rejects.toThrow(DisallowedRequestError);
+    expect(requests).toHaveLength(0);
+  });
+
+  it('refuses a body on GET', async () => {
+    await expect(
+      fetchWithPolicy(
+        `http://127.0.0.1:${port}/`,
+        { json: { a: 1 } },
+        testPolicy(),
+      ),
+    ).rejects.toThrow(DisallowedRequestError);
+  });
+
+  it('refuses a big body', async () => {
+    await expect(
+      fetchWithPolicy(
+        `http://127.0.0.1:${port}${LIST}`,
+        { method: 'POST', json: { prefix: 'x'.repeat(2000) } },
+        testPolicy(),
+      ),
+    ).rejects.toThrow(DisallowedRequestError);
+  });
+
+  it('never sends a POST on to where a redirect points', async () => {
+    handler = (_request, response) => {
+      response.writeHead(307, { location: '/rest/v1/profiles' });
+      response.end();
+    };
+
+    const result = await fetchWithPolicy(
+      `http://127.0.0.1:${port}${LIST}`,
+      { method: 'POST', json: {} },
+      testPolicy(),
+    );
+
+    expect(result).toMatchObject({ ok: true, status: 307 });
+    expect(requests).toHaveLength(1);
   });
 });

@@ -1,6 +1,7 @@
 import { bundleSecrets } from './bundle-secrets';
 import { leftoverFiles } from './leftover-files';
 import { supabaseRls } from './supabase-rls';
+import { supabaseStorage } from './supabase-storage';
 import { securityHeaders } from './security-headers';
 import type { Check } from './types';
 
@@ -39,4 +40,5 @@ export const checks: readonly Check[] = [
   bundleSecrets,
   leftoverFiles,
   supabaseRls,
+  supabaseStorage,
 ];

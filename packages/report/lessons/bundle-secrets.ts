@@ -1,4 +1,4 @@
-import type { Lesson } from '../types';
+import type { Lesson, RealCase } from '../types';
 
 const OWASP = [
   'A02:2021 Cryptographic Failures',
@@ -12,6 +12,13 @@ const WHY_AI_TOOLS_PRODUCE_IT =
 const AI_KEY_EXPLOIT =
   'Anyone who copies this key from your site can run requests on your account, and you get the bill. Leaked AI keys are a common target because they can be turned into money quickly.';
 
+const SECRETS_STUDY: RealCase = {
+  summary:
+    'In 2025, researchers at Escape checked more than 5,600 live apps built with AI app builders and found over 400 exposed secrets, such as API keys, that anyone visiting could copy.',
+  source: 'Escape',
+  url: 'https://escape.tech/blog/methodology-how-we-discovered-vulnerabilities-apps-built-with-vibe-coding/',
+};
+
 export const BUNDLE_SECRETS_LESSONS = {
   'bundle-secrets:supabase-secret': {
     whatItIs:
@@ -19,6 +26,7 @@ export const BUNDLE_SECRETS_LESSONS = {
     whyAiToolsProduceIt: WHY_AI_TOOLS_PRODUCE_IT,
     howItIsExploited:
       'Anyone can open your site, read its code, and copy this key. With it they can read, change, or delete everything in your database, including all your users’ data.',
+    realCase: SECRETS_STUDY,
     owasp: OWASP,
     cwe: CWE,
   },
@@ -28,6 +36,7 @@ export const BUNDLE_SECRETS_LESSONS = {
     whyAiToolsProduceIt: WHY_AI_TOOLS_PRODUCE_IT,
     howItIsExploited:
       'Anyone who copies this key from your site may be able to see your customers and payments, or issue refunds, depending on what the key is allowed to do.',
+    realCase: SECRETS_STUDY,
     owasp: OWASP,
     cwe: CWE,
   },
@@ -37,6 +46,7 @@ export const BUNDLE_SECRETS_LESSONS = {
     whyAiToolsProduceIt: WHY_AI_TOOLS_PRODUCE_IT,
     howItIsExploited:
       'Anyone who copies this key from your site can act as you. For a Firebase service account, that can mean reading and changing all of your data, skipping your security rules.',
+    realCase: SECRETS_STUDY,
     owasp: OWASP,
     cwe: ['CWE-200', 'CWE-321'],
   },
@@ -45,6 +55,7 @@ export const BUNDLE_SECRETS_LESSONS = {
       'An OpenAI API key lets a program use OpenAI and bills the usage to your account.',
     whyAiToolsProduceIt: WHY_AI_TOOLS_PRODUCE_IT,
     howItIsExploited: AI_KEY_EXPLOIT,
+    realCase: SECRETS_STUDY,
     owasp: OWASP,
     cwe: CWE,
   },
@@ -53,6 +64,7 @@ export const BUNDLE_SECRETS_LESSONS = {
       'An Anthropic API key lets a program use Claude and bills the usage to your account.',
     whyAiToolsProduceIt: WHY_AI_TOOLS_PRODUCE_IT,
     howItIsExploited: AI_KEY_EXPLOIT,
+    realCase: SECRETS_STUDY,
     owasp: OWASP,
     cwe: CWE,
   },
@@ -62,6 +74,7 @@ export const BUNDLE_SECRETS_LESSONS = {
     whyAiToolsProduceIt: WHY_AI_TOOLS_PRODUCE_IT,
     howItIsExploited:
       'If the matching secret is in your code too, anyone who copies them can use your AWS account with whatever access the key has, which can include your files, your data, and your bill.',
+    realCase: SECRETS_STUDY,
     owasp: OWASP,
     cwe: CWE,
   },

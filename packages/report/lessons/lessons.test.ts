@@ -10,6 +10,16 @@ describe('lessons', () => {
     expect(lesson.cwe.length).toBeGreaterThan(0);
   });
 
+  it.each(
+    Object.entries(LESSONS).flatMap(([id, lesson]) =>
+      'realCase' in lesson ? [[id, lesson.realCase]] : [],
+    ),
+  )('%s cites a real case with a working kind of link', (_id, realCase) => {
+    expect(realCase.summary).not.toBe('');
+    expect(realCase.source).not.toBe('');
+    expect(new URL(realCase.url).protocol).toBe('https:');
+  });
+
   it('uses no em dashes', () => {
     expect(JSON.stringify(LESSONS)).not.toContain('—');
   });

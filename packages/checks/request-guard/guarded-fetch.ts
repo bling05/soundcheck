@@ -10,8 +10,14 @@ const MAX_REDIRECTS = 5;
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 export interface GuardedFetchOptions {
-  /** Only read-only methods exist here, so a check can't write to a scanned app. */
-  method?: 'GET' | 'HEAD';
+  /**
+   * Only requests that read. POST is allowed only for addresses in `READ_ONLY_POSTS`,
+   * which are search endpoints that use POST to receive their question, never to change
+   * anything. A check can't write to a scanned app.
+   */
+  method?: 'GET' | 'HEAD' | 'POST';
+  /** The question for a read-only POST, sent as JSON. Only allowed with POST. */
+  json?: unknown;
   /** Limit for the whole request, including every redirect. */
   timeoutMs?: number;
   /** Bodies are cut off at this size and marked `truncated`. */
@@ -32,6 +38,21 @@ const ALLOWED_HEADERS = new Set(['apikey', 'authorization', 'prefer', 'range']);
 /** Thrown for a header outside `ALLOWED_HEADERS`. A bug in a check, never a site's fault. */
 export class DisallowedHeaderError extends Error {
   override name = 'DisallowedHeaderError';
+}
+
+/**
+ * The only addresses a POST may go to. Each one only reads: Supabase's file list takes a
+ * folder and a page size and returns names, and can't change or delete anything.
+ */
+const READ_ONLY_POSTS: readonly RegExp[] = [
+  /^\/storage\/v1\/object\/list\/[A-Za-z0-9_.-]+$/,
+];
+/** A read-only question is small. Anything bigger is a mistake in a check. */
+const MAX_JSON_BYTES = 1024;
+
+/** Thrown for a POST that isn't a known read-only request. A bug in a check. */
+export class DisallowedRequestError extends Error {
+  override name = 'DisallowedRequestError';
 }
 
 export type GuardFailureReason =
@@ -165,11 +186,12 @@ interface RawResponse {
 
 function sendRequest(
   url: URL,
-  method: 'GET' | 'HEAD',
+  method: 'GET' | 'HEAD' | 'POST',
   maxBytes: number,
   signal: AbortSignal,
   policy: GuardPolicy,
   extraHeaders: Readonly<Record<string, string>>,
+  body?: Buffer,
 ): Promise<RawResponse> {
   return new Promise((resolve, reject) => {
     const transport = url.protocol === 'https:' ? https : http;
@@ -186,6 +208,10 @@ function sendRequest(
         signal,
         headers: {
           ...extraHeaders,
+          ...(body && {
+            'content-type': 'application/json',
+            'content-length': String(body.length),
+          }),
           accept: '*/*',
           // Asking for no compression means a small response can't expand into a huge one.
           'accept-encoding': 'identity',
@@ -233,7 +259,7 @@ function sendRequest(
       },
     );
     request.on('error', reject);
-    request.end();
+    request.end(body);
   });
 }
 
@@ -264,6 +290,25 @@ export async function fetchWithPolicy(
   }
   const firstHost = url.host;
 
+  if (options.json !== undefined && method !== 'POST') {
+    throw new DisallowedRequestError('A body can only be sent with POST');
+  }
+  let body: Buffer | undefined;
+  if (method === 'POST') {
+    if (
+      !READ_ONLY_POSTS.some((path) => path.test(url.pathname)) ||
+      url.search
+    ) {
+      throw new DisallowedRequestError(
+        `POST is only allowed to read-only addresses, not ${url.pathname}`,
+      );
+    }
+    body = Buffer.from(JSON.stringify(options.json ?? {}));
+    if (body.length > MAX_JSON_BYTES) {
+      throw new DisallowedRequestError('The request body is too big');
+    }
+  }
+
   // Redirects are followed by hand so every hop goes through the same checks as the first.
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     const refused = checkUrl(url, policy);
@@ -279,6 +324,7 @@ export async function fetchWithPolicy(
         signal,
         policy,
         headers,
+        body,
       );
     } catch (error) {
       if (error instanceof BlockedAddressError)
@@ -287,7 +333,12 @@ export async function fetchWithPolicy(
     }
 
     const { location } = response.headers;
-    if (!REDIRECT_STATUSES.has(response.status) || !location) {
+    // A POST is never sent on to a new address: the redirect comes back as the answer.
+    if (
+      !REDIRECT_STATUSES.has(response.status) ||
+      !location ||
+      method === 'POST'
+    ) {
       return { ok: true, ...response, url: url.href };
     }
 

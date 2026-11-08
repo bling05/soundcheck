@@ -262,7 +262,7 @@ describe('runScan on an unverified Supabase site', () => {
 
     expect(report.outcomes).toEqual([]);
     expect(report.notAttempted[0]).toMatchObject({
-      title: 'Supabase tables anyone can read',
+      title: 'Supabase tables and files anyone can read',
       reason: expect.stringContaining('verify it'),
     });
   });

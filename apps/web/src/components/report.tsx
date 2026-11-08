@@ -55,6 +55,19 @@ function FindingBlock({ finding }: { finding: Finding }) {
           ))}
         </ul>
         <p>{lesson.howItIsExploited}</p>
+        {'realCase' in lesson && (
+          <p>
+            <strong>It&apos;s happened before:</strong>{' '}
+            {lesson.realCase.summary}{' '}
+            <a
+              href={lesson.realCase.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Source: {lesson.realCase.source}
+            </a>
+          </p>
+        )}
         <p>
           {lesson.whatItIs} {lesson.whyAiToolsProduceIt}
         </p>

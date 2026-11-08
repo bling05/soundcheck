@@ -21,6 +21,7 @@ export function withRequestCache(fetch: GuardedFetch): GuardedFetch {
       options.method ?? 'GET',
       options.maxBytes ?? null,
       options.timeoutMs ?? null,
+      options.json ?? null,
       Object.entries(options.headers ?? {})
         .map(([name, value]) => [name.toLowerCase(), value])
         .sort(),

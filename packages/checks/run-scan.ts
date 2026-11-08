@@ -23,9 +23,9 @@ const DATABASE_RULES = {
 
 /** Says why verifying matters on a Supabase site, without revealing anything about it. */
 const SUPABASE_TABLES = {
-  title: 'Supabase tables anyone can read',
+  title: 'Supabase tables and files anyone can read',
   reason:
-    "This site uses Supabase. The most common serious problem in Supabase apps is tables anyone can read, which has leaked real users' data. Checking needs proof that you own this site, so verify it to check yours.",
+    "This site uses Supabase. The most common serious problems in Supabase apps are tables anyone can read and file storage anyone can list, and both have leaked real users' data. Checking needs proof that you own this site, so verify it to check yours.",
 };
 
 /** Kinds of checks a URL scan never tries. Shown in every report's "couldn't check" list. */

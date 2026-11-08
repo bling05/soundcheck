@@ -14,8 +14,18 @@ export interface Lesson {
   whatItIs: string;
   whyAiToolsProduceIt: string;
   howItIsExploited: string;
+  /** A real breach or study showing this problem, when a well-sourced one exists. */
+  realCase?: RealCase;
   owasp: string[];
   cwe: string[];
+}
+
+export interface RealCase {
+  /** What happened, in plain words. Only facts the source states. */
+  summary: string;
+  /** Who reported it, shown as the link text, like `Wiz`. */
+  source: string;
+  url: string;
 }
 
 export interface ManualFix {
