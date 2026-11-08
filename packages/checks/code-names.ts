@@ -11,10 +11,12 @@ export function stringAssignedBefore(
   text: string,
   variable: string,
   index: number,
+  /** What the value may look like. Names by default; a storage path also allows `/`. */
+  value = '[A-Za-z0-9_.-]{1,63}',
 ): string | undefined {
   const escaped = variable.replace(/[$]/g, '\\$');
   const assignment = new RegExp(
-    `(?:^|[^\\w$.])${escaped}\\s*=\\s*["'\`]([A-Za-z0-9_.-]{1,63})["'\`]`,
+    `(?:^|[^\\w$.])${escaped}\\s*=\\s*["'\`](${value})["'\`]`,
     'g',
   );
   let found: string | undefined;

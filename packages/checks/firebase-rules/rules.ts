@@ -7,6 +7,8 @@ export interface FirebaseProject {
   apiKey?: string;
   /** Only set if the site uses the Realtime Database. No trailing slash. */
   databaseUrl?: string;
+  /** The file storage bucket, like `my-app.firebasestorage.app` or `my-app.appspot.com`. */
+  storageBucket?: string;
 }
 
 // Matches both `projectId:"x"` and `"projectId": "x"`, as config objects and JSON.
@@ -15,6 +17,7 @@ const setting = (name: string, value: string) =>
 const PROJECT_ID = setting('projectId', '[a-z0-9][a-z0-9-]{4,38}[a-z0-9]');
 const API_KEY = setting('apiKey', 'AIza[0-9A-Za-z_-]{35}');
 const DATABASE_URL = setting('databaseURL', 'https?://[^"\'`\\s]+');
+const STORAGE_BUCKET = setting('storageBucket', '[a-z0-9][a-z0-9._-]{2,220}');
 
 /** Finds the Firebase project in the site's code, from its `firebaseConfig`. */
 export function findFirebaseProject(
@@ -27,6 +30,7 @@ export function findFirebaseProject(
       projectId,
       apiKey: API_KEY.exec(text)?.[1],
       databaseUrl: DATABASE_URL.exec(text)?.[1]?.replace(/\/+$/, ''),
+      storageBucket: STORAGE_BUCKET.exec(text)?.[1],
     };
   }
   return undefined;

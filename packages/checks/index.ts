@@ -1,5 +1,7 @@
 import { bundleSecrets } from './bundle-secrets';
+import { combineChecks } from './combine';
 import { firebaseRules } from './firebase-rules';
+import { firebaseStorage } from './firebase-storage';
 import { leftoverFiles } from './leftover-files';
 import { nextjsVersion } from './nextjs-version';
 import { supabaseRls } from './supabase-rls';
@@ -37,12 +39,32 @@ export {
 } from './verification';
 export type { VerificationResult } from './verification';
 
+/** Check #4: each platform's version, so a report shows one check either way. */
+export const databaseRules = combineChecks(
+  'database-rules',
+  'Databases anyone can read',
+  [
+    { name: 'Supabase', check: supabaseRls },
+    { name: 'Firebase', check: firebaseRules },
+  ],
+);
+
+/** Check #5, the same way. */
+export const storageRules = combineChecks(
+  'storage-rules',
+  'File storage anyone can list',
+  [
+    { name: 'Supabase', check: supabaseStorage },
+    { name: 'Firebase', check: firebaseStorage },
+  ],
+);
+
+/** In check-number order: #1, #2, #3, #4, #5, #6. */
 export const checks: readonly Check[] = [
   securityHeaders,
   bundleSecrets,
   leftoverFiles,
-  supabaseRls,
-  supabaseStorage,
+  databaseRules,
+  storageRules,
   nextjsVersion,
-  firebaseRules,
 ];

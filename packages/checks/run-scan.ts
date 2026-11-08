@@ -30,9 +30,9 @@ const SUPABASE_TABLES = {
 
 /** The same, for a Firebase site. */
 const FIREBASE_RULES = {
-  title: 'Firebase databases anyone can read',
+  title: 'Firebase databases and files anyone can read',
   reason:
-    "This site uses Firebase. The most common serious problem in Firebase apps is security rules left open, like test mode, which has leaked millions of people's data. Checking needs proof that you own this site, so verify it to check yours.",
+    "This site uses Firebase. The most common serious problem in Firebase apps is security rules left open on the database or file storage, like test mode, which has leaked millions of people's data. Checking needs proof that you own this site, so verify it to check yours.",
 };
 
 /** Kinds of checks a URL scan never tries. Shown in every report's "couldn't check" list. */

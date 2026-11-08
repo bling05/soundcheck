@@ -1,6 +1,7 @@
 import type { Lesson } from '../types';
 import { BUNDLE_SECRETS_LESSONS } from './bundle-secrets';
 import { FIREBASE_RULES_LESSONS } from './firebase-rules';
+import { FIREBASE_STORAGE_LESSONS } from './firebase-storage';
 import { LEFTOVER_FILES_LESSONS } from './leftover-files';
 import { NEXTJS_VERSION_LESSONS } from './nextjs-version';
 import { SECURITY_HEADERS_LESSONS } from './security-headers';
@@ -19,6 +20,7 @@ export const LESSONS = {
   ...SUPABASE_STORAGE_LESSONS,
   ...NEXTJS_VERSION_LESSONS,
   ...FIREBASE_RULES_LESSONS,
+  ...FIREBASE_STORAGE_LESSONS,
 } satisfies Record<string, Lesson>;
 
 export type LessonId = keyof typeof LESSONS;

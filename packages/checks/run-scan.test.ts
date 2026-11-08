@@ -298,7 +298,7 @@ describe('runScan on an unverified Firebase site', () => {
 
     expect(report.outcomes).toEqual([]);
     expect(report.notAttempted[0]).toMatchObject({
-      title: 'Firebase databases anyone can read',
+      title: 'Firebase databases and files anyone can read',
       reason: expect.stringContaining('verify it'),
     });
   });
