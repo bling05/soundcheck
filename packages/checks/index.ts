@@ -1,4 +1,6 @@
+import { browserAiCalls } from './browser-ai-calls';
 import { bundleSecrets } from './bundle-secrets';
+import { firebaseRules } from './firebase-rules';
 import { leftoverFiles } from './leftover-files';
 import { nextjsVersion } from './nextjs-version';
 import { supabaseRls } from './supabase-rls';
@@ -43,4 +45,6 @@ export const checks: readonly Check[] = [
   supabaseRls,
   supabaseStorage,
   nextjsVersion,
+  firebaseRules,
+  browserAiCalls,
 ];

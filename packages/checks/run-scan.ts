@@ -28,6 +28,13 @@ const SUPABASE_TABLES = {
     "This site uses Supabase. The most common serious problems in Supabase apps are tables anyone can read and file storage anyone can list, and both have leaked real users' data. Checking needs proof that you own this site, so verify it to check yours.",
 };
 
+/** The same, for a Firebase site. */
+const FIREBASE_RULES = {
+  title: 'Firebase databases anyone can read',
+  reason:
+    "This site uses Firebase. The most common serious problem in Firebase apps is security rules left open, like test mode, which has leaked millions of people's data. Checking needs proof that you own this site, so verify it to check yours.",
+};
+
 /** Kinds of checks a URL scan never tries. Shown in every report's "couldn't check" list. */
 export const NOT_ATTEMPTED: ScanReport['notAttempted'] = [
   DATABASE_RULES,
@@ -149,9 +156,15 @@ export async function runScan(
     outcomes: [],
     notAttempted: verified
       ? NOT_ATTEMPTED.filter((item) => item !== DATABASE_RULES)
-      : fingerprint.platforms.includes('supabase')
-        ? [SUPABASE_TABLES, ...NOT_ATTEMPTED]
-        : NOT_ATTEMPTED,
+      : [
+          ...(fingerprint.platforms.includes('supabase')
+            ? [SUPABASE_TABLES]
+            : []),
+          ...(fingerprint.platforms.includes('firebase')
+            ? [FIREBASE_RULES]
+            : []),
+          ...NOT_ATTEMPTED,
+        ],
   };
 
   for (const check of checks) {

@@ -1,5 +1,7 @@
 import type { Lesson } from '../types';
+import { BROWSER_AI_CALLS_LESSONS } from './browser-ai-calls';
 import { BUNDLE_SECRETS_LESSONS } from './bundle-secrets';
+import { FIREBASE_RULES_LESSONS } from './firebase-rules';
 import { LEFTOVER_FILES_LESSONS } from './leftover-files';
 import { NEXTJS_VERSION_LESSONS } from './nextjs-version';
 import { SECURITY_HEADERS_LESSONS } from './security-headers';
@@ -17,6 +19,8 @@ export const LESSONS = {
   ...SUPABASE_RLS_LESSONS,
   ...SUPABASE_STORAGE_LESSONS,
   ...NEXTJS_VERSION_LESSONS,
+  ...FIREBASE_RULES_LESSONS,
+  ...BROWSER_AI_CALLS_LESSONS,
 } satisfies Record<string, Lesson>;
 
 export type LessonId = keyof typeof LESSONS;

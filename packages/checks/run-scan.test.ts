@@ -274,3 +274,31 @@ describe('runScan on an unverified Supabase site', () => {
     });
   });
 });
+
+describe('runScan on an unverified Firebase site', () => {
+  it('explains why verifying is worth it, without checking the database', async () => {
+    site = await startFixture({
+      '/': {
+        body: '<script>initializeApp({authDomain:"my-app.firebaseapp.com",projectId:"my-app"})</script>',
+      },
+    });
+
+    const report = reportOf(
+      await runScan(site.url, {
+        fetch: testFetchFor(site),
+        checks: [
+          fakeCheck('database', passes, {
+            mode: 'url-active',
+            platforms: ['firebase'],
+          }),
+        ],
+      }),
+    );
+
+    expect(report.outcomes).toEqual([]);
+    expect(report.notAttempted[0]).toMatchObject({
+      title: 'Firebase databases anyone can read',
+      reason: expect.stringContaining('verify it'),
+    });
+  });
+});
