@@ -1,3 +1,4 @@
+import { stringAssignedBefore, VARIABLE } from '../code-names';
 import type { SiteFile } from '../site-files';
 
 export interface SupabaseProject {
@@ -69,13 +70,33 @@ const STORAGE_BEFORE = /\bstorage\s*$/;
 /** Only read what fits in a scan: a big app might name hundreds of tables. */
 export const MAX_TABLES = 25;
 
+// The same call after a build tool moved the name into a variable: `.from(T).select(`.
+// The database action after it matters: `Array.from(x)` is everywhere and isn't a table.
+const FROM_VARIABLE_CALL = new RegExp(
+  `\\.from\\(\\s*(${VARIABLE})\\s*\\)\\s*\\.(?:select|insert|update|upsert|delete)\\(`,
+  'g',
+);
+const TABLE_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,62}$/;
+
 /** The table names the site's code reads from, in the order first seen. */
 export function findTableNames(files: readonly SiteFile[]): string[] {
   const tables = new Set<string>();
   for (const { text } of files) {
-    for (const match of text.matchAll(FROM_CALL)) {
-      const before = text.slice(Math.max(0, match.index - 20), match.index);
-      if (!STORAGE_BEFORE.test(before) && match[1]) tables.add(match[1]);
+    const calls = [
+      ...[...text.matchAll(FROM_CALL)].map((match) => ({
+        index: match.index,
+        name: match[1],
+      })),
+      ...[...text.matchAll(FROM_VARIABLE_CALL)].map((match) => ({
+        index: match.index,
+        name: match[1] && stringAssignedBefore(text, match[1], match.index),
+      })),
+    ].sort((a, b) => a.index - b.index);
+    for (const { index, name } of calls) {
+      const before = text.slice(Math.max(0, index - 20), index);
+      if (name && TABLE_NAME.test(name) && !STORAGE_BEFORE.test(before)) {
+        tables.add(name);
+      }
     }
   }
   return [...tables].slice(0, MAX_TABLES);

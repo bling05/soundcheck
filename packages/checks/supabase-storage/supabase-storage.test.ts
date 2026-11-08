@@ -157,6 +157,26 @@ describe('supabase storage check against a fake app', () => {
 });
 
 describe('finding bucket names', () => {
+  it('follows a name a build tool moved into a variable', () => {
+    // From a real Lovable build.
+    const text =
+      'S_=`id-documents`,C_=r_({queryFn:async()=>{let e=Jh.storage.from(S_),{data:t}=await e.list(``)}})';
+
+    expect(findBucketNames([{ location: 'x', text }])).toEqual([
+      'id-documents',
+    ]);
+  });
+
+  it('uses the nearest earlier value when a short name is reused', () => {
+    const text =
+      'a="first";x.storage.from(a);a="second";y.storage.from(a);z.storage.from(nope)';
+
+    expect(findBucketNames([{ location: 'x', text }])).toEqual([
+      'first',
+      'second',
+    ]);
+  });
+
   it('reads storage.from() calls and file links, and skips tables', () => {
     const text = [
       'e.storage.from(`avatars`).upload(f)',

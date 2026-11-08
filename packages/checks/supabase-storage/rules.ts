@@ -1,8 +1,14 @@
+import { stringAssignedBefore, VARIABLE } from '../code-names';
 import type { SiteFile } from '../site-files';
 
 // `supabase.storage.from('avatars')`, the way app code names a file bucket.
 const STORAGE_FROM =
   /\bstorage\s*\.from\(\s*["'`]([A-Za-z0-9_.-]{1,63})["'`]\s*\)/g;
+// The same call after a build tool moved the name into a variable: `storage.from(S_)`.
+const STORAGE_FROM_VARIABLE = new RegExp(
+  `\\bstorage\\s*\\.from\\(\\s*(${VARIABLE})\\s*\\)`,
+  'g',
+);
 // A file link the app builds or shows, like `/storage/v1/object/public/avatars/me.png`.
 const FILE_LINK =
   /\/storage\/v1\/object\/(?:public|sign|authenticated)\/([A-Za-z0-9_.-]{1,63})\//g;
@@ -15,10 +21,22 @@ export const LIST_LIMIT = 100;
 export function findBucketNames(files: readonly SiteFile[]): string[] {
   const buckets = new Set<string>();
   for (const { text } of files) {
-    for (const pattern of [STORAGE_FROM, FILE_LINK]) {
-      for (const [, name] of text.matchAll(pattern)) {
-        if (name && name !== '.' && name !== '..') buckets.add(name);
-      }
+    const named = [STORAGE_FROM, FILE_LINK].flatMap((pattern) =>
+      [...text.matchAll(pattern)].map((match) => ({
+        index: match.index,
+        name: match[1],
+      })),
+    );
+    const fromVariables = [...text.matchAll(STORAGE_FROM_VARIABLE)].map(
+      (match) => ({
+        index: match.index,
+        name: match[1] && stringAssignedBefore(text, match[1], match.index),
+      }),
+    );
+    for (const { name } of [...named, ...fromVariables].sort(
+      (a, b) => a.index - b.index,
+    )) {
+      if (name && name !== '.' && name !== '..') buckets.add(name);
     }
   }
   return [...buckets].slice(0, MAX_BUCKETS);

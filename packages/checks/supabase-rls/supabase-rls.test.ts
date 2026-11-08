@@ -212,6 +212,18 @@ describe('finding the project', () => {
 });
 
 describe('finding table names', () => {
+  it('follows a name a build tool moved into a variable', () => {
+    const text = 'T="profiles";async()=>db.from(T).select("*")';
+
+    expect(findTableNames([{ location: 'x', text }])).toEqual(['profiles']);
+  });
+
+  it('ignores Array.from and other from() calls that are not queries', () => {
+    const text = 'e="hello";Array.from(e);new Set(e);Object.from(e).map(f)';
+
+    expect(findTableNames([{ location: 'x', text }])).toEqual([]);
+  });
+
   it('reads .from() calls and skips storage buckets', () => {
     const text = [
       'a.from("profiles").select()',
