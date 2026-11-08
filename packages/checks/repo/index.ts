@@ -1,7 +1,7 @@
-import { gunzipSync } from 'node:zlib';
+import { createGunzip } from 'node:zlib';
 import type { RepoRef, Technology } from '@soundcheck/shared';
 import type { GuardedFetch } from '../request-guard';
-import { readTar } from './tar';
+import { TarReader } from './tar';
 
 export interface RepoFile {
   /** Relative to the repo root, like `supabase/migrations/001.sql`. */
@@ -21,10 +21,14 @@ export interface RepoSnapshot {
 export type RepoDownload =
   { ok: true; snapshot: RepoSnapshot } | { ok: false; message: string };
 
-/** A compressed repo bigger than this is refused rather than half read. */
-export const MAX_DOWNLOAD_BYTES = 30 * 1024 * 1024;
-/** Uncompressed, so a small archive can't expand into something huge. */
-const MAX_UNPACKED_BYTES = 200 * 1024 * 1024;
+/**
+ * A compressed repo bigger than this is refused rather than half read. Repos often carry
+ * data files and images, and those are skipped while unpacking, so this only needs to
+ * keep the download quick.
+ */
+export const MAX_DOWNLOAD_BYTES = 150 * 1024 * 1024;
+/** Unpacked, so a small archive can't expand forever. Skipped files still count. */
+const MAX_UNPACKED_BYTES = 1024 * 1024 * 1024;
 const MAX_FILE_BYTES = 1024 * 1024;
 const MAX_FILES = 5000;
 const DOWNLOAD_TIMEOUT_MS = 30_000;
@@ -49,30 +53,65 @@ function isSkippedPath(path: string): boolean {
   return path.split('/').some((part) => SKIPPED_FOLDERS.has(part));
 }
 
+// Data, media, and lock files. When one is too big to read it's skipped quietly: it isn't
+// code, so leaving it out doesn't make the scan incomplete.
+const NOT_CODE =
+  /\.(?:csv|tsv|jsonl|ndjson|parquet|xlsx?|sqlite3?|db|h5|pkl|npy|npz|zip|tar|t?gz|bz2|7z|rar|pdf|png|jpe?g|gif|webp|avif|ico|svg|mp[34]|mov|wav|webm|woff2?|ttf|otf|ipynb|map|lock|log|txt|xml)$|(?:^|\/)(?:package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb?)$/i;
+
 /** Binary files have zero bytes early on. Text files never do. */
 function isText(data: Buffer): boolean {
   return !data.subarray(0, 8000).includes(0);
 }
 
-/** Reads the text files out of a GitHub tarball, which wraps everything in one folder. */
-export function filesFromArchive(gzipped: Buffer): {
-  files: RepoFile[];
-  filesSkipped: number;
-} {
-  const archive = gunzipSync(gzipped, { maxOutputLength: MAX_UNPACKED_BYTES });
-  const files: RepoFile[] = [];
-  let filesSkipped = 0;
-  for (const { path: fullPath, data } of readTar(archive)) {
-    const path = fullPath.split('/').slice(1).join('/');
-    if (!path || isSkippedPath(path)) continue;
-    if (data.length > MAX_FILE_BYTES || files.length >= MAX_FILES) {
-      filesSkipped++;
-      continue;
-    }
-    if (!isText(data)) continue;
-    files.push({ path, text: data.toString('utf8') });
-  }
-  return { files, filesSkipped };
+/**
+ * Reads the text files out of a GitHub tarball, which wraps everything in one folder. It
+ * unpacks a piece at a time and skips what it doesn't keep as it streams past, so a repo
+ * with hundreds of megabytes of data files never has to fit in memory.
+ */
+export function filesFromArchive(
+  gzipped: Buffer,
+): Promise<{ files: RepoFile[]; filesSkipped: number }> {
+  return new Promise((resolve, reject) => {
+    const files: RepoFile[] = [];
+    let filesSkipped = 0;
+    let unpacked = 0;
+    const gunzip = createGunzip();
+    const finish = () => resolve({ files, filesSkipped });
+
+    const reader = new TarReader({
+      wants(fullPath, size) {
+        const path = fullPath.split('/').slice(1).join('/');
+        if (!path || isSkippedPath(path)) return false;
+        if (size > MAX_FILE_BYTES || files.length >= MAX_FILES) {
+          if (!NOT_CODE.test(path)) filesSkipped++;
+          return false;
+        }
+        return true;
+      },
+      onFile({ path: fullPath, data }) {
+        if (!isText(data)) return;
+        const path = fullPath.split('/').slice(1).join('/');
+        files.push({ path, text: data.toString('utf8') });
+      },
+    });
+
+    gunzip.on('data', (chunk: Buffer) => {
+      unpacked += chunk.length;
+      if (unpacked > MAX_UNPACKED_BYTES) {
+        gunzip.destroy();
+        reject(new Error('Repo is too big once unpacked'));
+        return;
+      }
+      reader.push(chunk);
+      if (reader.done) {
+        gunzip.destroy();
+        finish();
+      }
+    });
+    gunzip.on('end', finish);
+    gunzip.on('error', reject);
+    gunzip.end(gzipped);
+  });
 }
 
 /**
@@ -109,9 +148,9 @@ export async function downloadRepo(
     };
   }
 
-  let read: ReturnType<typeof filesFromArchive>;
+  let read: Awaited<ReturnType<typeof filesFromArchive>>;
   try {
-    read = filesFromArchive(response.body);
+    read = await filesFromArchive(response.body);
   } catch {
     return {
       ok: false,

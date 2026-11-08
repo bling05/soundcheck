@@ -62,8 +62,8 @@ describe('downloadRepo', () => {
 });
 
 describe('filesFromArchive', () => {
-  it('leaves out installed and built code, and binary files', () => {
-    const { files } = filesFromArchive(
+  it('leaves out installed and built code, and binary files', async () => {
+    const { files } = await filesFromArchive(
       repoArchive({
         'src/app.ts': 'export {}',
         'node_modules/left-pad/index.js': 'module.exports = 1',
@@ -76,9 +76,9 @@ describe('filesFromArchive', () => {
     expect(files.map(({ path }) => path)).toEqual(['src/app.ts']);
   });
 
-  it('skips files too big to read, and says the read was partial', () => {
+  it('skips code files too big to read, and says the read was partial', async () => {
     const big = 'x'.repeat(1024 * 1024 + 1);
-    const result = filesFromArchive(
+    const result = await filesFromArchive(
       repoArchive({ 'small.ts': 'ok', 'huge.sql': big }),
     );
 
@@ -86,12 +86,29 @@ describe('filesFromArchive', () => {
     expect(result.filesSkipped).toBe(1);
   });
 
-  it('reads long paths, stored the way GitHub stores them', () => {
+  it('reads long paths, stored the way GitHub stores them', async () => {
     const deep = `${'folder/'.repeat(40)}file.ts`;
 
     expect(
-      filesFromArchive(repoArchive({ [deep]: 'deep' })).files[0]?.path,
+      (await filesFromArchive(repoArchive({ [deep]: 'deep' }))).files[0]?.path,
     ).toBe(deep);
+  });
+});
+
+describe('data-heavy repos', () => {
+  it('skips big data files quietly, without calling the scan incomplete', async () => {
+    const csv = 'id,name\n'.repeat(200_000);
+    const result = await filesFromArchive(
+      repoArchive({
+        'app/views.py': 'def index(): pass',
+        'scraping/recipes.csv': csv,
+        'scraping/sitemaps/sitemap1.txt': csv,
+        'package-lock.json': '{}'.padEnd(2 * 1024 * 1024, ' '),
+      }),
+    );
+
+    expect(result.files.map(({ path }) => path)).toEqual(['app/views.py']);
+    expect(result.filesSkipped).toBe(0);
   });
 });
 
