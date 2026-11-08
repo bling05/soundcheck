@@ -1,5 +1,7 @@
 import type { CheckOutcome, ScanReport } from '@soundcheck/report';
+import { repoLabel, type Platform, type RepoRef } from '@soundcheck/shared';
 import { fingerprintSite, type Technology } from './fingerprint';
+import { downloadRepo, technologiesInRepo } from './repo';
 import { withRequestCache, type GuardedFetch } from './request-guard';
 import type { Check, CheckResult } from './types';
 import { checkVerification } from './verification';
@@ -36,17 +38,21 @@ const FIREBASE_RULES = {
 };
 
 /** Kinds of checks a URL scan never tries. Shown in every report's "couldn't check" list. */
+const YOUR_CODE = {
+  title: 'Your code',
+  reason:
+    'Problems like missing ownership checks only show up in your code. Add your repo link to check it.',
+};
+
+const LOGIN_PAGES = {
+  title: 'Pages behind a login',
+  reason: 'We only read what a logged-out visitor can see.',
+};
+
 export const NOT_ATTEMPTED: ScanReport['notAttempted'] = [
   DATABASE_RULES,
-  {
-    title: 'Your code',
-    reason:
-      "Problems like missing ownership checks only show up in your code, and repo scans aren't available yet.",
-  },
-  {
-    title: 'Pages behind a login',
-    reason: 'We only read what a logged-out visitor can see.',
-  },
+  YOUR_CODE,
+  LOGIN_PAGES,
 ];
 
 const CRASHED =
@@ -62,6 +68,8 @@ export interface RunScanOptions {
    * the site shows this code, checks that need proof of ownership run too.
    */
   verificationCode?: string;
+  /** Where repos are downloaded from. Tests point it at a fake server. */
+  repoBase?: string;
   /** Called once with the checks that will run, before the first one starts. */
   onPlanned?: (checks: PlannedCheck[]) => Promise<void>;
   /** Called with the report so far after each check finishes. */
@@ -97,17 +105,21 @@ async function withTimeLimit<T>(
   }
 }
 
-/** URL scans run passive checks, plus active ones once the site is verified. */
+/**
+ * URL checks need a site, and active ones a verified site. Repo checks need a repo. Each
+ * also needs the platform it's for, found on the site or in the repo.
+ */
 function appliesTo(
   check: Check,
-  platforms: readonly string[],
-  verified: boolean,
+  stack: readonly string[],
+  has: { url: boolean; repo: boolean; verified: boolean },
 ): boolean {
-  if (check.mode === 'repo') return false;
-  if (check.mode === 'url-active' && !verified) return false;
+  if (check.mode === 'repo' && !has.repo) return false;
+  if (check.mode !== 'repo' && !has.url) return false;
+  if (check.mode === 'url-active' && !has.verified) return false;
   return (
     check.platforms === 'all' ||
-    check.platforms.some((platform) => platforms.includes(platform))
+    check.platforms.some((platform) => stack.includes(platform))
   );
 }
 
@@ -119,11 +131,28 @@ function skipped(check: Check, reason: string): CheckOutcome {
   return { checkId: check.id, title: check.title, status: 'skipped', reason };
 }
 
-/** Fingerprints a site, then runs every check that applies to it, one at a time. */
+/** What to scan: a site, a repo, or both. */
+export interface ScanTarget {
+  url?: string;
+  repo?: RepoRef;
+}
+
+/**
+ * Fingerprints the site and downloads the repo, whichever were given, then runs every
+ * check that applies, one at a time.
+ */
 export async function runScan(
-  url: string,
+  target: string | ScanTarget,
   options: RunScanOptions,
 ): Promise<RunScanResult> {
+  const { url, repo: repoRef } =
+    typeof target === 'string' ? { url: target, repo: undefined } : target;
+  if (!url && !repoRef) {
+    return {
+      ok: false,
+      message: 'Give a link to your site, your repo, or both.',
+    };
+  }
   const now = options.now ?? Date.now;
   const checkLimit = options.checkTimeLimitMs ?? CHECK_TIME_LIMIT_MS;
   const deadline = now() + (options.scanTimeLimitMs ?? SCAN_TIME_LIMIT_MS);
@@ -131,40 +160,77 @@ export async function runScan(
   // One download of each page per scan, shared by fingerprinting and every check.
   const fetch = withRequestCache(options.fetch);
 
-  const fingerprint = await fingerprintSite(url, fetch);
-  if (!fingerprint.ok) return { ok: false, message: fingerprint.message };
+  const fingerprint = url ? await fingerprintSite(url, fetch) : undefined;
+  if (fingerprint && !fingerprint.ok) {
+    return { ok: false, message: fingerprint.message };
+  }
+
+  const download = repoRef
+    ? await downloadRepo(repoRef, options.fetch, options.repoBase)
+    : undefined;
+  // A repo that can't be read ends a repo-only scan. With a site too, the site is still
+  // scanned and the report says why the code wasn't.
+  if (download && !download.ok && !url) {
+    return { ok: false, message: download.message };
+  }
+  const repo = download?.ok ? download.snapshot : undefined;
 
   const stack: Technology[] = [
-    ...new Set(fingerprint.detections.map(({ technology }) => technology)),
+    ...new Set([
+      ...(fingerprint?.ok
+        ? fingerprint.detections.map(({ technology }) => technology)
+        : []),
+      ...(repo ? technologiesInRepo(repo.files) : []),
+    ]),
   ];
+  const platforms = stack.filter(
+    (technology): technology is Platform =>
+      technology === 'supabase' || technology === 'firebase',
+  );
   // Checked again on every scan, so taking the code off the site ends verification.
   const verified =
+    url !== undefined &&
     options.verificationCode !== undefined &&
     (await checkVerification(url, options.verificationCode, fetch)).verified;
 
   const checks = options.checks.filter((check) =>
-    appliesTo(check, stack, verified),
+    appliesTo(check, stack, {
+      url: url !== undefined,
+      repo: repo !== undefined,
+      verified,
+    }),
   );
   await options.onPlanned?.(checks.map(({ id, title }) => ({ id, title })));
 
+  const sitePlatforms = fingerprint?.ok ? fingerprint.platforms : [];
+  const notAttempted = [
+    ...(url && !verified && sitePlatforms.includes('supabase')
+      ? [SUPABASE_TABLES]
+      : []),
+    ...(url && !verified && sitePlatforms.includes('firebase')
+      ? [FIREBASE_RULES]
+      : []),
+    ...NOT_ATTEMPTED.filter((item) => {
+      if (item === DATABASE_RULES) return url !== undefined && !verified;
+      if (item === LOGIN_PAGES) return url !== undefined;
+      if (item === YOUR_CODE) return repo === undefined;
+      return true;
+    }).map((item) =>
+      item === YOUR_CODE && download && !download.ok
+        ? { title: item.title, reason: download.message }
+        : item,
+    ),
+  ];
+
   const report: ScanReport = {
-    url,
+    ...(url && { url }),
+    ...(repoRef && { repo: repoLabel(repoRef) }),
     scannedAt: new Date(now()).toISOString(),
-    ...(fingerprint.tool && { tool: fingerprint.tool }),
+    ...(fingerprint?.ok && fingerprint.tool && { tool: fingerprint.tool }),
     ...(stack.length > 0 && { stack }),
     verified,
     outcomes: [],
-    notAttempted: verified
-      ? NOT_ATTEMPTED.filter((item) => item !== DATABASE_RULES)
-      : [
-          ...(fingerprint.platforms.includes('supabase')
-            ? [SUPABASE_TABLES]
-            : []),
-          ...(fingerprint.platforms.includes('firebase')
-            ? [FIREBASE_RULES]
-            : []),
-          ...NOT_ATTEMPTED,
-        ],
+    notAttempted,
   };
 
   for (const check of checks) {
@@ -176,9 +242,10 @@ export async function runScan(
     try {
       const result = await withTimeLimit(
         check.run({
-          url,
+          ...(url && { url }),
+          ...(repo && { repo }),
           fetch,
-          platforms: fingerprint.platforms,
+          platforms,
           technologies: stack,
         }),
         Math.min(checkLimit, timeLeft),

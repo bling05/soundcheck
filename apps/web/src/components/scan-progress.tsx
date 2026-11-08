@@ -1,3 +1,4 @@
+import { scanTitle } from '@/lib/scan-title';
 import type { PlannedCheck, Scan } from '@soundcheck/db';
 import type { CheckOutcome } from '@soundcheck/report';
 
@@ -25,7 +26,7 @@ function stateOf(
 
 /** What a scan shows before its report is ready: each check and how it's going. */
 export function ScanProgress({ scan }: { scan: Scan }) {
-  const hostname = new URL(scan.url).hostname;
+  const title = scanTitle(scan);
   const outcomes = scan.report?.outcomes ?? [];
   const firstUnfinished = scan.checks.find(
     ({ id }) => !outcomes.some(({ checkId }) => checkId === id),
@@ -33,7 +34,7 @@ export function ScanProgress({ scan }: { scan: Scan }) {
 
   return (
     <>
-      <h1>{hostname}</h1>
+      <h1>{title}</h1>
       <p aria-live="polite">
         {scan.status === 'queued' && 'Starting…'}
         {scan.status === 'running' &&

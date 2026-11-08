@@ -1,3 +1,4 @@
+import { scanTitle } from '@/lib/scan-title';
 import { checks } from '@soundcheck/checks';
 import { deletionDate, failIfStuck, getScan } from '@soundcheck/db';
 import type { Metadata } from 'next';
@@ -54,7 +55,7 @@ export default async function ScanPage({
       <main className="report">
         {recentNotice}
         <Report report={scan.report} />
-        {HAS_OWNER_CHECKS && !scan.report.verified && (
+        {HAS_OWNER_CHECKS && scan.url && !scan.report.verified && (
           <p>
             Own this site?{' '}
             <Link href={`/verify?site=${encodeURIComponent(scan.url)}`}>
@@ -78,7 +79,7 @@ export default async function ScanPage({
   if (scan.status === 'failed') {
     return (
       <main className="report">
-        <h1>{new URL(scan.url).hostname}</h1>
+        <h1>{scanTitle(scan)}</h1>
         <p>{scan.failure ?? 'This scan stopped before it finished.'}</p>
         <p>
           <Link href="/">Scan again</Link>

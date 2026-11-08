@@ -24,7 +24,6 @@ export function ScanForm() {
           autoComplete="url"
           autoCapitalize="none"
           spellCheck={false}
-          required
         />
         <button type="submit" disabled={pending}>
           {pending ? 'Starting…' : 'Scan'}

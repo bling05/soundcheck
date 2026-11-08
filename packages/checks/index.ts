@@ -28,7 +28,15 @@ export {
   runScan,
   SCAN_TIME_LIMIT_MS,
 } from './run-scan';
-export type { PlannedCheck, RunScanOptions, RunScanResult } from './run-scan';
+export type {
+  PlannedCheck,
+  RunScanOptions,
+  RunScanResult,
+  ScanTarget,
+} from './run-scan';
+/** True once at least one check reads code, so the website can take repo links. */
+export const REPO_SCANS_READY = (): boolean =>
+  checks.some(({ mode }) => mode === 'repo');
 export type { Check, CheckContext, CheckMode, CheckResult } from './types';
 export {
   checkVerification,

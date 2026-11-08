@@ -131,7 +131,8 @@ export function Report({ report }: { report: ScanReport }) {
   return (
     <>
       <header>
-        <h1>{new URL(report.url).hostname}</h1>
+        <h1>{report.url ? new URL(report.url).hostname : report.repo}</h1>
+        {report.url && report.repo && <p className="muted">{report.repo}</p>}
         <p className="muted">Scanned {scanned}.</p>
       </header>
 

@@ -6,8 +6,13 @@ import {
   createScan,
   findRecentScan,
 } from '@soundcheck/db';
-import { verificationCode } from '@soundcheck/checks';
-import { parseScanUrl } from '@soundcheck/shared';
+import { REPO_SCANS_READY, verificationCode } from '@soundcheck/checks';
+import {
+  parseRepoUrl,
+  parseScanUrl,
+  repoLabel,
+  type RepoRef,
+} from '@soundcheck/shared';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { after } from 'next/server';
@@ -36,28 +41,47 @@ export async function startScan(
   _previous: StartScanState,
   form: FormData,
 ): Promise<StartScanState> {
-  const repo = form.get('repo');
-  if (typeof repo === 'string' && repo.trim() !== '') {
-    return {
-      message:
-        "Repo scans aren't ready yet. Leave the repo link empty to scan just your site.",
-    };
+  const urlInput = String(form.get('url') ?? '').trim();
+  const repoInput = String(form.get('repo') ?? '').trim();
+  if (!urlInput && !repoInput) {
+    return { message: "Enter your app's link, your repo's link, or both." };
   }
 
-  const parsed = parseScanUrl(String(form.get('url') ?? ''));
-  if (!parsed.ok) return { message: parsed.message };
-  const url = parsed.url;
+  let repo: string | undefined;
+  let repoRef: RepoRef | undefined;
+  if (repoInput) {
+    // Opens by itself once the first check that reads code exists.
+    if (!REPO_SCANS_READY()) {
+      return {
+        message:
+          "Repo scans aren't ready yet. Leave the repo link empty to scan just your site.",
+      };
+    }
+    const parsedRepo = parseRepoUrl(repoInput);
+    if (!parsedRepo.ok) return { message: parsedRepo.message };
+    repoRef = parsedRepo.repo;
+    repo = repoLabel(repoRef);
+  }
+
+  let url: string | undefined;
+  if (urlInput) {
+    const parsed = parseScanUrl(urlInput);
+    if (!parsed.ok) return { message: parsed.message };
+    url = parsed.url;
+  }
 
   // Someone holding a verification secret may own this site, so their scan can include
   // database results. It's never reused for anyone else, and never reuses another scan.
   const secret = await readVerificationSecret();
-  const code = secret && verificationCode(secret, new URL(url).hostname);
+  const code = url && secret && verificationCode(secret, new URL(url).hostname);
 
   let destination: string;
   try {
-    const recent = code
-      ? undefined
-      : await findRecentScan(url, RECENT_SCAN_MINUTES);
+    // Only a scan of the site alone is reused. A repo is always read fresh.
+    const recent =
+      code || repo || !url
+        ? undefined
+        : await findRecentScan(url, RECENT_SCAN_MINUTES);
     if (recent) {
       destination = `/scan/${recent}?recent`;
     } else {
@@ -67,9 +91,19 @@ export async function startScan(
         active: await countActiveScans(),
       });
       if (refusal) return { message: refusal };
-      const id = await createScan(url, visitor, { private: Boolean(code) });
+      const id = await createScan(
+        { ...(url && { url }), ...(repo && { repo }) },
+        visitor,
+        { private: Boolean(code) },
+      );
       // Runs after the visitor has been sent to the scan page.
-      after(() => runQueuedScan(id, url, code));
+      after(() =>
+        runQueuedScan(
+          id,
+          { ...(url && { url }), ...(repoRef && { repo: repoRef }) },
+          code || undefined,
+        ),
+      );
       destination = `/scan/${id}`;
     }
   } catch (error) {

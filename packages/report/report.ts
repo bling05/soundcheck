@@ -10,7 +10,10 @@ export type CheckOutcome = { checkId: string; title: string } & (
 );
 
 export interface ScanReport {
-  url: string;
+  /** The site scanned, if one was given. */
+  url?: string;
+  /** The repo scanned, like `github.com/you/app`, if one was given. */
+  repo?: string;
   /** ISO date and time. */
   scannedAt: string;
   /** AI tool to tailor the fix prompt for, if one was detected. */

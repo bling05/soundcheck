@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net';
 export interface FixtureResponse {
   status?: number;
   headers?: Record<string, string>;
-  body?: string;
+  body?: string | Buffer;
 }
 
 /**

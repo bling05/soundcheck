@@ -1,5 +1,6 @@
 import type { Finding } from '@soundcheck/report';
 import type { Platform, Technology } from '@soundcheck/shared';
+import type { RepoSnapshot } from './repo';
 import type { GuardedFetch } from './request-guard';
 
 export type CheckMode = 'url-passive' | 'url-active' | 'repo';
@@ -9,8 +10,8 @@ export interface CheckContext {
   fetch: GuardedFetch;
   /** Set for URL scans. */
   url?: string;
-  /** Local path to the cloned repo. Set for repo scans. */
-  repoPath?: string;
+  /** The repo's files, read in memory. Set when a repo was given. */
+  repo?: RepoSnapshot;
   /** Platforms found by fingerprinting. */
   platforms: Platform[];
   /** Everything found by fingerprinting, used to make fixes more specific. */

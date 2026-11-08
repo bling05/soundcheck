@@ -1,6 +1,7 @@
 import type { ScanReport } from '@soundcheck/report';
 import { afterEach, describe, expect, it } from 'vitest';
 import { leftoverFilesSite } from '../../fixtures/leftover-files';
+import { repoArchive } from '../../fixtures/repo';
 import { startFixture, type RunningFixture } from '../../fixtures/server';
 import { checks } from './index';
 import { testFetchFor } from './request-guard/test-fetch';
@@ -301,5 +302,117 @@ describe('runScan on an unverified Firebase site', () => {
       title: 'Firebase databases and files anyone can read',
       reason: expect.stringContaining('verify it'),
     });
+  });
+});
+
+describe('runScan with a repo', () => {
+  const REPO = { owner: 'you', name: 'app' };
+  const repoCheck = fakeCheck(
+    'code',
+    async () => ({ status: 'ran', findings: [] }),
+    { mode: 'repo' },
+  );
+  const siteCheck = fakeCheck('site', passes);
+
+  /** A fake site that also plays GitHub, serving the repo archive. */
+  async function startWith(archive?: Buffer) {
+    site = await startFixture({
+      ...leftoverFilesSite,
+      ...(archive && { '/you/app/tar.gz/HEAD': { body: archive } }),
+    });
+    return {
+      fetch: testFetchFor(site),
+      repoBase: site.url.slice(0, -1),
+      checks: [repoCheck, siteCheck],
+    };
+  }
+
+  const archive = () =>
+    repoArchive({
+      'package.json': '{"dependencies":{"@supabase/supabase-js":"2"}}',
+    });
+
+  it('runs only repo checks for a repo on its own', async () => {
+    let seen: unknown;
+    const options = await startWith(archive());
+    const report = reportOf(
+      await runScan(
+        { repo: REPO },
+        {
+          ...options,
+          checks: [
+            fakeCheck('code', async () => ({ status: 'ran', findings: [] }), {
+              mode: 'repo',
+              run: async (context) => {
+                seen = context;
+                return { status: 'ran', findings: [] };
+              },
+            }),
+            siteCheck,
+          ],
+        },
+      ),
+    );
+
+    expect(report).toMatchObject({
+      repo: 'github.com/you/app',
+      stack: ['supabase'],
+    });
+    expect(report.url).toBeUndefined();
+    expect(report.outcomes.map(({ checkId }) => checkId)).toEqual(['code']);
+    expect(seen).toMatchObject({
+      platforms: ['supabase'],
+      repo: { files: [{ path: 'package.json' }] },
+    });
+    expect(report.notAttempted.map(({ title }) => title)).not.toContain(
+      'Your code',
+    );
+  });
+
+  it('runs site and repo checks together when given both', async () => {
+    const options = await startWith(archive());
+    const report = reportOf(
+      await runScan({ url: site.url, repo: REPO }, options),
+    );
+
+    expect(report.outcomes.map(({ checkId }) => checkId)).toEqual([
+      'code',
+      'site',
+    ]);
+    expect(report).toMatchObject({ url: site.url, repo: 'github.com/you/app' });
+  });
+
+  it('fails a repo-only scan when the repo can’t be downloaded', async () => {
+    const options = await startWith();
+
+    expect(await runScan({ repo: REPO }, options)).toMatchObject({
+      ok: false,
+      message: expect.stringContaining('only public repos'),
+    });
+  });
+
+  it('still scans the site when the repo can’t be downloaded, and says why', async () => {
+    const options = await startWith();
+    const report = reportOf(
+      await runScan({ url: site.url, repo: REPO }, options),
+    );
+
+    expect(report.outcomes.map(({ checkId }) => checkId)).toEqual(['site']);
+    expect(report.notAttempted).toContainEqual({
+      title: 'Your code',
+      reason: expect.stringContaining('only public repos'),
+    });
+  });
+
+  it('needs a site or a repo', async () => {
+    expect(
+      await runScan(
+        {},
+        {
+          fetch: async () => ({ ok: false, reason: 'timeout', message: '' }),
+          checks: [],
+        },
+      ),
+    ).toMatchObject({ ok: false });
   });
 });

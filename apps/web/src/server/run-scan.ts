@@ -1,4 +1,9 @@
-import { checks, guardedFetch, runScan } from '@soundcheck/checks';
+import {
+  checks,
+  guardedFetch,
+  runScan,
+  type ScanTarget,
+} from '@soundcheck/checks';
 import {
   failScan,
   finishScan,
@@ -25,12 +30,12 @@ export function describeError(error: unknown): string {
  */
 export async function runQueuedScan(
   id: string,
-  url: string,
+  target: ScanTarget,
   verificationCode?: string,
 ): Promise<void> {
   try {
     if (!(await markRunning(id))) return;
-    const result = await runScan(url, {
+    const result = await runScan(target, {
       fetch: guardedFetch,
       checks,
       verificationCode,

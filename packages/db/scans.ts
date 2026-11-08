@@ -11,7 +11,10 @@ export interface PlannedCheck {
 
 export interface Scan {
   id: string;
-  url: string;
+  /** The site, if one was given. A scan has a site, a repo, or both. */
+  url: string | null;
+  /** The repo, like `github.com/you/app`, if one was given. */
+  repo: string | null;
   status: ScanStatus;
   checks: PlannedCheck[];
   /** Built up as each check finishes, and complete once the scan is done. */
@@ -24,7 +27,8 @@ export interface Scan {
 
 interface ScanRow {
   id: string;
-  url: string;
+  url: string | null;
+  repo: string | null;
   status: ScanStatus;
   checks: PlannedCheck[];
   report: ScanReport | null;
@@ -37,6 +41,7 @@ interface ScanRow {
 const fromRow = (row: ScanRow): Scan => ({
   id: row.id,
   url: row.url,
+  repo: row.repo,
   status: row.status,
   checks: row.checks,
   report: row.report,
@@ -48,7 +53,7 @@ const fromRow = (row: ScanRow): Scan => ({
 
 // Never `select *`: the requester hash stays inside the database.
 const COLUMNS =
-  'id, url, status, checks, report, failure, requested_at, started_at, finished_at';
+  'id, url, repo, status, checks, report, failure, requested_at, started_at, finished_at';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -58,18 +63,24 @@ export function isScanId(id: string): boolean {
 }
 
 /**
- * Queues a scan and returns its id. The url must already be cleaned with `parseScanUrl`.
+ * Queues a scan and returns its id. The url must already be cleaned with `parseScanUrl`,
+ * and the repo written with `repoLabel`. At least one of them must be given.
  * `requester` is a keyed hash of the visitor's IP, never the IP itself. A `private` scan
  * is never shown to anyone who didn't start it, except through its own link.
  */
 export async function createScan(
-  url: string,
+  target: { url?: string; repo?: string },
   requester?: string,
   options: { private?: boolean } = {},
 ): Promise<string> {
   const { rows } = await pool().query<{ id: string }>(
-    'insert into scans (url, requester, private) values ($1, $2, $3) returning id',
-    [url, requester ?? null, options.private ?? false],
+    'insert into scans (url, repo, requester, private) values ($1, $2, $3, $4) returning id',
+    [
+      target.url ?? null,
+      target.repo ?? null,
+      requester ?? null,
+      options.private ?? false,
+    ],
   );
   const id = rows[0]?.id;
   if (!id) throw new Error('The database did not return a scan id.');
@@ -89,7 +100,8 @@ export async function getScan(id: string): Promise<Scan | undefined> {
 
 /**
  * A scan of this exact link from the last few minutes that didn't fail, newest first.
- * Private scans are never reused: they can hold an owner's database results.
+ * Private scans are never reused: they can hold an owner's database results. Only scans of
+ * the site alone count, since one that also covered a repo answers a different question.
  */
 export async function findRecentScan(
   url: string,
@@ -97,7 +109,7 @@ export async function findRecentScan(
 ): Promise<string | undefined> {
   const { rows } = await pool().query<{ id: string }>(
     `select id from scans
-     where url = $1 and status <> 'failed' and not private
+     where url = $1 and repo is null and status <> 'failed' and not private
        and requested_at > now() - make_interval(mins => $2)
      order by requested_at desc limit 1`,
     [url, withinMinutes],
