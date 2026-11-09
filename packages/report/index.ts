@@ -18,6 +18,7 @@ export type {
   Evidence,
   Finding,
   Lesson,
+  RealCase,
   ManualFix,
   SourceTag,
 } from './types';

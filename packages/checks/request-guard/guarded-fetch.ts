@@ -49,13 +49,29 @@ export class DisallowedHeaderError extends Error {
 
 /**
  * The only addresses a POST may go to. Each one only reads: Supabase's file list takes a
- * folder and a page size and returns names, and can't change or delete anything.
+ * folder and a page size and returns names, and OSV.dev's batch lookup takes package
+ * names and returns advisory ids. Neither can change or delete anything.
  */
-const READ_ONLY_POSTS: readonly RegExp[] = [
-  /^\/storage\/v1\/object\/list\/[A-Za-z0-9_.-]+$/,
+interface ReadOnlyPost {
+  /** Only on this host, for an address that's only read-only on one service. */
+  host?: string;
+  path: RegExp;
+  /** A read-only question is small. Anything bigger is a mistake in a check. */
+  maxJsonBytes: number;
+}
+
+const READ_ONLY_POSTS: readonly ReadOnlyPost[] = [
+  {
+    path: /^\/storage\/v1\/object\/list\/[A-Za-z0-9_.-]+$/,
+    maxJsonBytes: 1024,
+  },
+  // Google's open vulnerability database. A few hundred package names need more room.
+  {
+    host: 'api.osv.dev',
+    path: /^\/v1\/querybatch$/,
+    maxJsonBytes: 64 * 1024,
+  },
 ];
-/** A read-only question is small. Anything bigger is a mistake in a check. */
-const MAX_JSON_BYTES = 1024;
 
 /** Thrown for a POST that isn't a known read-only request. A bug in a check. */
 export class DisallowedRequestError extends Error {
@@ -302,16 +318,18 @@ export async function fetchWithPolicy(
   }
   let body: Buffer | undefined;
   if (method === 'POST') {
-    if (
-      !READ_ONLY_POSTS.some((path) => path.test(url.pathname)) ||
-      url.search
-    ) {
+    const allowed = READ_ONLY_POSTS.find(
+      ({ host, path }) =>
+        (host === undefined || url.hostname === host) &&
+        path.test(url.pathname),
+    );
+    if (!allowed || url.search) {
       throw new DisallowedRequestError(
         `POST is only allowed to read-only addresses, not ${url.pathname}`,
       );
     }
     body = Buffer.from(JSON.stringify(options.json ?? {}));
-    if (body.length > MAX_JSON_BYTES) {
+    if (body.length > allowed.maxJsonBytes) {
       throw new DisallowedRequestError('The request body is too big');
     }
   }

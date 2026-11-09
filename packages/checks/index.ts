@@ -10,6 +10,7 @@ import { supabasePolicies } from './supabase-policies';
 import { supabaseRls } from './supabase-rls';
 import { supabaseStorage } from './supabase-storage';
 import { securityHeaders } from './security-headers';
+import { slopsquatting } from './slopsquatting';
 import type { Check } from './types';
 
 export { fingerprintSite } from './fingerprint';
@@ -70,7 +71,7 @@ export const storageRules = combineChecks(
   ],
 );
 
-/** In check-number order: #1 to #9. */
+/** In check-number order: #1 to #10. */
 export const checks: readonly Check[] = [
   securityHeaders,
   bundleSecrets,
@@ -81,4 +82,5 @@ export const checks: readonly Check[] = [
   supabasePolicies,
   ownershipChecks,
   repoSecrets,
+  slopsquatting,
 ];

@@ -455,6 +455,8 @@ describe('read-only POST', () => {
     '/storage/v1/object/list/avatars/../../rest',
     `${LIST}?x=1`,
     '/',
+    // Read-only on api.osv.dev only, so it's refused on any other host.
+    '/v1/querybatch',
   ])('refuses POST to %s, which could change data', async (path) => {
     await expect(
       fetchWithPolicy(

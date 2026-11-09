@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { ScanForm } from '@/components/scan-form';
 
 // Submitting the form runs the whole scan in the background of the same request, so it
@@ -25,6 +26,9 @@ export default function HomePage() {
         <li>Scans your code and your live site.</li>
         <li>Rescan to see what&apos;s fixed.</li>
       </ul>
+      <p>
+        <Link href="/learn">Learn how these problems work</Link>
+      </p>
     </main>
   );
 }

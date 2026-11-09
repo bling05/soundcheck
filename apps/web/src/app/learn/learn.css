@@ -1,0 +1,253 @@
+/*
+ * The Learn section. Same fonts and colors as the rest of the site, with a light notebook
+ * touch: faint ruled lines, a margin line, and handwritten check numbers.
+ */
+.learn {
+  --line: 28px;
+  --rule: rgb(74 127 168 / 0.14);
+  --margin-line: rgb(179 65 47 / 0.25);
+
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 44rem);
+  gap: 2.5rem;
+  justify-content: center;
+  padding: 3rem 1rem 4rem;
+}
+
+.learn-sidebar {
+  position: sticky;
+  top: 2rem;
+  align-self: start;
+  font-size: 0.9375rem;
+}
+
+.learn-sidebar ol {
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.learn-sidebar a {
+  display: flex;
+  gap: 0.625rem;
+  padding: 0.3125rem 0.5rem;
+  border-left: 2px solid transparent;
+  color: var(--color-text);
+  text-decoration: none;
+  line-height: 1.4;
+}
+
+.learn-sidebar a:hover {
+  color: var(--color-accent);
+}
+
+.learn-sidebar a[aria-current='page'] {
+  border-left-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.learn-sidebar-home {
+  font-weight: 600;
+}
+
+.learn-sidebar-number {
+  flex: none;
+  width: 1.25rem;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono), monospace;
+  font-weight: 400;
+  text-align: right;
+}
+
+.notebook {
+  position: relative;
+  min-width: 0;
+  padding: var(--line) 2rem var(--line) 3.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--line) - 1px),
+    var(--rule) calc(var(--line) - 1px),
+    var(--rule) var(--line)
+  );
+  line-height: var(--line);
+}
+
+/* The margin line down the left of a notebook page. */
+.notebook::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2.25rem;
+  border-left: 1px solid var(--margin-line);
+}
+
+.notebook p,
+.notebook ul,
+.notebook ol {
+  margin: 0 0 var(--line);
+}
+
+.notebook h1 {
+  margin: 0 0 var(--line);
+  font-size: 2rem;
+  line-height: calc(var(--line) * 2);
+}
+
+.notebook h2 {
+  margin: 0;
+  padding-top: var(--line);
+  font-size: 1.25rem;
+  line-height: var(--line);
+}
+
+.notebook h3 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: var(--line);
+}
+
+/* Under a platform heading, each problem is an h3 and its parts are h4s. */
+.platform h3 {
+  padding-top: var(--line);
+  font-size: 1.0625rem;
+}
+
+.notebook h4 {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: var(--line);
+}
+
+.learn-sidebar-site {
+  display: block;
+  margin-bottom: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+/* "Check 2:", written in by hand. */
+.handwritten {
+  color: var(--color-accent);
+  font-family: var(--font-hand), cursive;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+/* A title with a subtitle under it keeps them together. */
+.notebook h1:has(+ .learn-about) {
+  margin-bottom: 0;
+}
+
+.notebook .learn-about {
+  color: var(--color-text-muted);
+}
+
+p.handwritten {
+  margin: 0;
+  line-height: var(--line);
+}
+
+/* A to-do list with every box ticked, drawn a little wonky like it was done by hand. */
+.learn-checks {
+  padding: 0;
+  list-style: none;
+}
+
+.learn-checks li {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.learn-checks li::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-text);
+  border-radius: 3px 5px 3px 6px;
+  transform: rotate(-3deg);
+}
+
+.learn-checks li::after {
+  content: '✓';
+  position: absolute;
+  top: -5px;
+  left: 3px;
+  color: var(--color-accent);
+  font-family: var(--font-hand), cursive;
+  font-size: 1.5rem;
+  transform: rotate(8deg);
+}
+
+.learn-checks .handwritten {
+  margin-right: 0.25rem;
+}
+
+.on-this-page ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.on-this-page {
+  padding-left: 1.25rem;
+  color: var(--color-text-muted);
+}
+
+.topic {
+  scroll-margin-top: 2rem;
+}
+
+.past-case {
+  margin: 0.75rem 0 var(--line);
+  padding: 0.75rem 1rem 0;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  line-height: 1.6;
+}
+
+.past-case p {
+  margin: 0 0 0.75rem;
+}
+
+.filed-under {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8125rem;
+}
+
+.next-check {
+  font-weight: 600;
+}
+
+@media (max-width: 52rem) {
+  .learn {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    padding-top: 1.5rem;
+  }
+
+  /* On a phone the check list sits above the page, two columns wide. */
+  .learn-sidebar {
+    position: static;
+  }
+
+  .learn-sidebar ol {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .notebook {
+    padding: var(--line) 1rem var(--line) 2rem;
+  }
+
+  .notebook::before {
+    left: 1rem;
+  }
+}

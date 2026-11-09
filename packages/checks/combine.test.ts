@@ -112,6 +112,7 @@ describe('combineChecks', () => {
       'supabase-policies',
       'ownership-checks',
       'repo-secrets',
+      'slopsquatting',
     ]);
   });
 

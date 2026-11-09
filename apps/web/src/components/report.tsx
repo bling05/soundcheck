@@ -5,6 +5,8 @@ import {
   type Finding,
   type ScanReport,
 } from '@soundcheck/report';
+import Link from 'next/link';
+import { learnHref } from '@/lib/learn';
 import { CopyButton } from './copy-button';
 
 /** Just the place, for a closed block. The full line shows when it's opened. */
@@ -57,8 +59,7 @@ function FindingBlock({ finding }: { finding: Finding }) {
         <p>{lesson.howItIsExploited}</p>
         {'realCase' in lesson && (
           <p>
-            <strong>It&apos;s happened before:</strong>{' '}
-            {lesson.realCase.summary}{' '}
+            <strong>Past case:</strong> {lesson.realCase.summary}{' '}
             <a
               href={lesson.realCase.url}
               target="_blank"
@@ -78,6 +79,9 @@ function FindingBlock({ finding }: { finding: Finding }) {
           <code>{manualFix.snippet}</code>
         </pre>
         <p className="muted">{[...lesson.owasp, ...lesson.cwe].join(' · ')}</p>
+        <p>
+          <Link href={learnHref(finding.lessonId)}>Learn more</Link>
+        </p>
       </div>
     </details>
   );

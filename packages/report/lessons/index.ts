@@ -7,6 +7,7 @@ import { NEXTJS_VERSION_LESSONS } from './nextjs-version';
 import { OWNERSHIP_CHECKS_LESSONS } from './ownership-checks';
 import { REPO_SECRETS_LESSONS } from './repo-secrets';
 import { SECURITY_HEADERS_LESSONS } from './security-headers';
+import { SLOPSQUATTING_LESSONS } from './slopsquatting';
 import { SUPABASE_POLICIES_LESSONS } from './supabase-policies';
 import { SUPABASE_RLS_LESSONS } from './supabase-rls';
 import { SUPABASE_STORAGE_LESSONS } from './supabase-storage';
@@ -24,6 +25,7 @@ export const LESSONS = {
   ...SUPABASE_POLICIES_LESSONS,
   ...OWNERSHIP_CHECKS_LESSONS,
   ...REPO_SECRETS_LESSONS,
+  ...SLOPSQUATTING_LESSONS,
   ...NEXTJS_VERSION_LESSONS,
   ...FIREBASE_RULES_LESSONS,
   ...FIREBASE_STORAGE_LESSONS,
