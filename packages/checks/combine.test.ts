@@ -111,6 +111,7 @@ describe('combineChecks', () => {
       'nextjs-version',
       'supabase-policies',
       'ownership-checks',
+      'repo-secrets',
     ]);
   });
 

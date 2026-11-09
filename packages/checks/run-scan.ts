@@ -41,7 +41,7 @@ const FIREBASE_RULES = {
 const YOUR_CODE = {
   title: 'Your code',
   reason:
-    'Problems like missing ownership checks only show up in your code. Add your repo link to check it.',
+    'Problems like missing ownership checks and committed secrets only show up in your code. Add your repo link to check it.',
 };
 
 const LOGIN_PAGES = {

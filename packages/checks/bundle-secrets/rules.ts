@@ -119,17 +119,38 @@ function compact(secret: string): string {
   return secret.replace(/\\n|\s/g, '');
 }
 
+export interface SecretMatch {
+  rule: SecretRuleId;
+  /** The full key. Never put it in a finding: use `redactSecret`. */
+  secret: string;
+  /** Where the match starts in the text. */
+  index: number;
+}
+
+function* realMatches(
+  { id, pattern, isReal }: SecretRule,
+  text: string,
+): Generator<SecretMatch> {
+  for (const match of text.matchAll(pattern)) {
+    const secret = compact(match[1] ?? match[0]);
+    if (isReal(secret)) yield { rule: id, secret, index: match.index };
+  }
+}
+
+/** Every real key in one piece of text, rule by rule. Shared with the repo check. */
+export function matchSecrets(text: string): SecretMatch[] {
+  return SECRET_RULES.flatMap((rule) => [...realMatches(rule, text)]);
+}
+
 /** Finds real keys. Each distinct key is one leak, however many files it appears in. */
 export function findLeaks(files: readonly SiteFile[]): Leak[] {
   const leaks: Leak[] = [];
 
-  for (const { id, pattern, isReal } of SECRET_RULES) {
+  for (const rule of SECRET_RULES) {
+    const { id } = rule;
     const byKey = new Map<string, Leak>();
     for (const { location, text } of files) {
-      for (const match of text.matchAll(pattern)) {
-        const secret = compact(match[1] ?? match[0]);
-        if (!isReal(secret)) continue;
-
+      for (const { secret } of realMatches(rule, text)) {
         const leak = byKey.get(secret);
         if (!leak) {
           byKey.set(secret, {
