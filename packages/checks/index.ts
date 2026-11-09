@@ -5,6 +5,7 @@ import { firebaseStorage } from './firebase-storage';
 import { leftoverFiles } from './leftover-files';
 import { nextjsVersion } from './nextjs-version';
 import { ownershipChecks } from './ownership';
+import { payments } from './payments';
 import { repoSecrets } from './repo-secrets';
 import { supabasePolicies } from './supabase-policies';
 import { supabaseRls } from './supabase-rls';
@@ -71,7 +72,7 @@ export const storageRules = combineChecks(
   ],
 );
 
-/** In check-number order: #1 to #10. */
+/** In check-number order: #1 to #11. */
 export const checks: readonly Check[] = [
   securityHeaders,
   bundleSecrets,
@@ -83,4 +84,5 @@ export const checks: readonly Check[] = [
   ownershipChecks,
   repoSecrets,
   slopsquatting,
+  payments,
 ];

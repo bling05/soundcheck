@@ -113,6 +113,7 @@ describe('combineChecks', () => {
       'ownership-checks',
       'repo-secrets',
       'slopsquatting',
+      'payments',
     ]);
   });
 

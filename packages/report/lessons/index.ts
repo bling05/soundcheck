@@ -5,6 +5,7 @@ import { FIREBASE_STORAGE_LESSONS } from './firebase-storage';
 import { LEFTOVER_FILES_LESSONS } from './leftover-files';
 import { NEXTJS_VERSION_LESSONS } from './nextjs-version';
 import { OWNERSHIP_CHECKS_LESSONS } from './ownership-checks';
+import { PAYMENTS_LESSONS } from './payments';
 import { REPO_SECRETS_LESSONS } from './repo-secrets';
 import { SECURITY_HEADERS_LESSONS } from './security-headers';
 import { SLOPSQUATTING_LESSONS } from './slopsquatting';
@@ -26,6 +27,7 @@ export const LESSONS = {
   ...OWNERSHIP_CHECKS_LESSONS,
   ...REPO_SECRETS_LESSONS,
   ...SLOPSQUATTING_LESSONS,
+  ...PAYMENTS_LESSONS,
   ...NEXTJS_VERSION_LESSONS,
   ...FIREBASE_RULES_LESSONS,
   ...FIREBASE_STORAGE_LESSONS,

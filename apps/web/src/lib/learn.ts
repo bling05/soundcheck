@@ -194,6 +194,23 @@ export const CHAPTERS: readonly Chapter[] = [
       topic('slopsquatting:lookalike-package', 'Lookalike names'),
     ],
   },
+  {
+    number: 11,
+    slug: 'payments',
+    title: 'Price tampering',
+    about: 'Payment mistakes: prices, success pages, and webhooks',
+    topics: [
+      topic('payments:price-from-request', 'Prices sent from the browser'),
+      topic(
+        'payments:success-page-unlocks',
+        'Success pages that unlock paid features',
+      ),
+      topic(
+        'payments:unverified-webhook',
+        'Stripe webhooks that skip the signature check',
+      ),
+    ],
+  },
 ];
 
 /** `bundle-secrets:stripe-secret` becomes the `stripe-secret` section of its check's page. */
