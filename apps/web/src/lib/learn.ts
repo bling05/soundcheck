@@ -211,6 +211,28 @@ export const CHAPTERS: readonly Chapter[] = [
       ),
     ],
   },
+  {
+    number: 12,
+    slug: 'live-attacks',
+    title: 'XSS, SQL injection, path traversal',
+    about: 'Common attacks, tried safely on verified sites',
+    topics: [
+      topic(
+        'live-probes:reflected-xss',
+        'Text from the address shown as HTML (XSS)',
+      ),
+      topic(
+        'live-probes:sql-error',
+        'Database errors from a quote mark (SQL injection)',
+      ),
+      topic(
+        'live-probes:path-traversal',
+        'Reading files with "../" (path traversal)',
+      ),
+      topic('live-probes:open-api', 'API routes that list people'),
+      topic('live-probes:open-signup', 'Sign-up with no email confirmation'),
+    ],
+  },
 ];
 
 /** `bundle-secrets:stripe-secret` becomes the `stripe-secret` section of its check's page. */

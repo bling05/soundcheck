@@ -7,6 +7,11 @@ import {
   findBrowserCalls,
 } from './browser-ai';
 import { RULE_CONTENT } from './content';
+import {
+  geminiAccess,
+  googleKeysByRedacted,
+  type GeminiAccess,
+} from './gemini';
 import { findLeaks } from './rules';
 
 const CHECK_ID = 'bundle-secrets';
@@ -48,9 +53,33 @@ async function run(context: CheckContext): Promise<CheckResult> {
     return { status: 'skipped', reason: PARTIAL_READ };
   }
 
-  const found = leaks.map(({ rule, redacted, locations }): Finding => {
-    const { title, severity, manualFix, fixRequest, safetyStep } =
-      RULE_CONTENT[rule];
+  // For a verified owner, find out whether each Google key really works for Gemini, so
+  // "check this key" becomes either a confirmed problem or nothing at all.
+  const gemini = new Map<string, GeminiAccess>();
+  if (context.verified) {
+    const keys = googleKeysByRedacted(site.files);
+    for (const { rule, redacted } of leaks) {
+      const key = keys.get(redacted);
+      if (rule === 'google-api-key' && key)
+        gemini.set(redacted, await geminiAccess(key, context.fetch));
+    }
+  }
+
+  const kept = leaks.filter(
+    ({ rule, redacted }) =>
+      rule !== 'google-api-key' || gemini.get(redacted) !== 'blocked',
+  );
+  const found = kept.map(({ rule, redacted, locations }): Finding => {
+    const content = RULE_CONTENT[rule];
+    const confirmed =
+      rule === 'google-api-key' && gemini.get(redacted) === 'works';
+    const { title, severity, manualFix, fixRequest, safetyStep } = confirmed
+      ? {
+          ...content,
+          title: 'Your Google API key can use Gemini, billed to you',
+          severity: 'high' as const,
+        }
+      : content;
     return {
       // The redacted key, so the same leaked key keeps its id until it's replaced.
       id: findingId(CHECK_ID, rule, redacted),
@@ -62,7 +91,9 @@ async function run(context: CheckContext): Promise<CheckResult> {
       evidence: locations.slice(0, MAX_EVIDENCE_FILES).map((url) => ({
         kind: 'url',
         url,
-        detail: `Found a key ending in ${redacted} in this file.`,
+        detail: confirmed
+          ? `Found a key ending in ${redacted} in this file. We asked Google for its list of Gemini models with it, and Google answered, so the key works for Gemini.`
+          : `Found a key ending in ${redacted} in this file.`,
       })),
       lessonId: `${CHECK_ID}:${rule}`,
       manualFix,

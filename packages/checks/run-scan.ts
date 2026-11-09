@@ -244,6 +244,7 @@ export async function runScan(
         check.run({
           ...(url && { url }),
           ...(repo && { repo }),
+          ...(verified && { verified }),
           fetch,
           platforms,
           technologies: stack,

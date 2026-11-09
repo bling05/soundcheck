@@ -3,6 +3,7 @@ import { BUNDLE_SECRETS_LESSONS } from './bundle-secrets';
 import { FIREBASE_RULES_LESSONS } from './firebase-rules';
 import { FIREBASE_STORAGE_LESSONS } from './firebase-storage';
 import { LEFTOVER_FILES_LESSONS } from './leftover-files';
+import { LIVE_PROBES_LESSONS } from './live-probes';
 import { NEXTJS_VERSION_LESSONS } from './nextjs-version';
 import { OWNERSHIP_CHECKS_LESSONS } from './ownership-checks';
 import { PAYMENTS_LESSONS } from './payments';
@@ -28,6 +29,7 @@ export const LESSONS = {
   ...REPO_SECRETS_LESSONS,
   ...SLOPSQUATTING_LESSONS,
   ...PAYMENTS_LESSONS,
+  ...LIVE_PROBES_LESSONS,
   ...NEXTJS_VERSION_LESSONS,
   ...FIREBASE_RULES_LESSONS,
   ...FIREBASE_STORAGE_LESSONS,

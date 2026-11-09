@@ -114,6 +114,7 @@ describe('combineChecks', () => {
       'repo-secrets',
       'slopsquatting',
       'payments',
+      'live-probes',
     ]);
   });
 

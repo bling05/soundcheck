@@ -1,6 +1,7 @@
 import type { GuardedFetch } from '../request-guard';
 import type { Dependency } from './manifests';
-import { inBatches, parse, record, type RegistryBases } from './registry';
+import { inBatches } from '../in-batches';
+import { parse, record, type RegistryBases } from './registry';
 
 const BATCH_SIZE = 300;
 // Only a handful of packages in a repo should ever have malware reports.

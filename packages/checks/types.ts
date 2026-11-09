@@ -14,6 +14,11 @@ export interface CheckContext {
   repo?: RepoSnapshot;
   /** Platforms found by fingerprinting. */
   platforms: Platform[];
+  /**
+   * True when the person scanning proved they own the site. Passive checks use it to go one
+   * step further on what they found, like testing a key the owner's own site exposes.
+   */
+  verified?: boolean;
   /** Everything found by fingerprinting, used to make fixes more specific. */
   technologies?: readonly Technology[];
 }

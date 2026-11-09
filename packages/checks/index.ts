@@ -3,6 +3,7 @@ import { combineChecks } from './combine';
 import { firebaseRules } from './firebase-rules';
 import { firebaseStorage } from './firebase-storage';
 import { leftoverFiles } from './leftover-files';
+import { liveProbes } from './live-probes';
 import { nextjsVersion } from './nextjs-version';
 import { ownershipChecks } from './ownership';
 import { payments } from './payments';
@@ -72,7 +73,7 @@ export const storageRules = combineChecks(
   ],
 );
 
-/** In check-number order: #1 to #11. */
+/** In check-number order: #1 to #12. */
 export const checks: readonly Check[] = [
   securityHeaders,
   bundleSecrets,
@@ -85,4 +86,5 @@ export const checks: readonly Check[] = [
   repoSecrets,
   slopsquatting,
   payments,
+  liveProbes,
 ];
