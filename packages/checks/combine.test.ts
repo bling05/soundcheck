@@ -110,6 +110,7 @@ describe('combineChecks', () => {
       'storage-rules',
       'nextjs-version',
       'supabase-policies',
+      'ownership-checks',
     ]);
   });
 

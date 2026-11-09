@@ -155,3 +155,24 @@ describe('summarizeReport', () => {
     expect(summary.noProblemsFound).toEqual([]);
   });
 });
+
+describe('headlines for repo scans', () => {
+  const base = {
+    scannedAt: '2026-11-08T00:00:00Z',
+    outcomes: [],
+    notAttempted: [],
+  };
+
+  it.each([
+    [{ url: 'https://a.test/' }, "We couldn't check anything on this site"],
+    [{ repo: 'github.com/a/b' }, "We couldn't check anything in this repo"],
+    [
+      { url: 'https://a.test/', repo: 'github.com/a/b' },
+      "We couldn't check anything on this site or in this repo",
+    ],
+  ])('%o', (target, headline) => {
+    expect(summarizeReport({ ...base, ...target }).headline).toContain(
+      headline,
+    );
+  });
+});

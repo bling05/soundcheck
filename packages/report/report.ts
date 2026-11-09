@@ -48,14 +48,29 @@ function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`;
 }
 
-function headlineFor(findings: number, checksRan: number): string {
+/** What the scan covered, in the words a headline needs. */
+function subject(report: ScanReport): { your: string; this: string } {
+  if (report.url && report.repo) {
+    return { your: 'your app', this: 'on this site or in this repo' };
+  }
+  return report.url
+    ? { your: 'your site', this: 'on this site' }
+    : { your: 'your code', this: 'in this repo' };
+}
+
+function headlineFor(
+  findings: number,
+  checksRan: number,
+  report: ScanReport,
+): string {
+  const { your, this: target } = subject(report);
   if (findings > 0) {
     return 'Here are the vulnerabilities we found.';
   }
   if (checksRan > 0) {
-    return `We didn't find any problems in the ${plural(checksRan, 'check', 'checks')} we ran. That doesn't mean your site is fully secure, so see what we didn't check below.`;
+    return `We didn't find any problems in the ${plural(checksRan, 'check', 'checks')} we ran. That doesn't mean ${your} is fully secure, so see what we didn't check below.`;
   }
-  return "We couldn't check anything on this site, so we can't say whether it has problems.";
+  return `We couldn't check anything ${target}, so we can't say whether it has problems.`;
 }
 
 /** Turns scan results into what a report shows. Same input, same output. */
@@ -85,7 +100,7 @@ export function summarizeReport(report: ScanReport): ReportSummary {
   notChecked.push(...report.notAttempted);
 
   return {
-    headline: headlineFor(findings.length, checksRan),
+    headline: headlineFor(findings.length, checksRan, report),
     findings,
     fixPrompt:
       findings.length > 0
